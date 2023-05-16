@@ -317,18 +317,11 @@ def compute_chair_reward(
 
     # energy penalty for movement
     actions_cost = torch.sum(actions ** 2, dim=-1)
-    # electricity_cost = torch.sum(torch.abs(actions * obs_buf[:, 20:28]), dim=-1)
-    # dof_at_limit_cost = torch.sum(obs_buf[:, 12:20] > 0.99, dim=-1)
 
     # reward for duration of staying alive
-    alive_reward = torch.ones_like(potentials) * 0.5
-    progress_reward = potentials - prev_potentials
+    alive_reward = torch.ones_like(heading_reward) * 0.5
 
-    total_reward = progress_reward + alive_reward + up_reward + heading_reward - \
-        actions_cost_scale * actions_cost # - energy_cost_scale * electricity_cost - dof_at_limit_cost * joints_at_limit_cost_scale
-
-    # adjust reward for fallen agents
-    total_reward = torch.where(obs_buf[:, 0] < termination_height, torch.ones_like(total_reward) * death_cost, total_reward)
+    total_reward = alive_reward + up_reward + heading_reward - actions_cost 
 
     # reset agents
     reset = torch.where(obs_buf[:, 0] < termination_height, torch.ones_like(reset_buf), reset_buf)
