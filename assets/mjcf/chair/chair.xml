@@ -1,5 +1,6 @@
 <mujoco model="chair">
 	<compiler angle="radian"/>
+	<!--<option timestep="0.016" iterations="50" tolerance="1e-10" solver="Newton" jacobian="dense" cone="pyramidal"/>-->
 
   <asset>
 		<texture name="texplane" type="2d" builtin="checker" rgb1=".8 .8 .8" rgb2=".6 .6 .6" width="512" height="512" mark="cross" markrgb=".8 .8 .8"/>
@@ -22,7 +23,6 @@
 			<geom name="seat" type="mesh" mesh="seat" rgba="1 .8 0 1"/>
 		  <geom name="face" type="mesh" mesh="face" rgba="1 .8 0 1"/>
 			<!--<joint type="free"/>-->
-			<joint type="free"/>
 
 			<body>
 					<!--<joint name="joint2" type="hinge" axis="0 1 0" damping=".010" pos=".12223 -.01378 .0061"/>-->
