@@ -303,8 +303,7 @@ def compute_chair_reward(
     joints_at_limit_cost_scale,
     termination_height,
     death_cost,
-    max_episode_length
-):
+    max_episode_length):
     # type: (Tensor, Tensor, Tensor, Tensor, float, float, Tensor, Tensor, float, float, float, float, float, float) -> Tuple[Tensor, Tensor]
 
     # reward from direction headed
@@ -326,6 +325,7 @@ def compute_chair_reward(
     # reset agents
     reset = torch.where(obs_buf[:, 0] < termination_height, torch.ones_like(reset_buf), reset_buf)
     reset = torch.where(progress_buf >= max_episode_length - 1, torch.ones_like(reset_buf), reset)
+    reset = reset_buf
 
     return total_reward, reset
 
