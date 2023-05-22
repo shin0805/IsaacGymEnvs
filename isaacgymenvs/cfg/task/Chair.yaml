@@ -21,6 +21,7 @@ env:
   tiltWeight: 5
   moveForwardWeight: 5
   heightWeight: 0.5
+  aliveWeight: 2.0
 
   # cost parameters
   actionsCost: 0.005
@@ -28,7 +29,7 @@ env:
   dofVelocityScale: 0.2
   contactForceScale: 0.1
   jointsAtLimitCost: 0.1
-  deathCost: -2.0
+  deathCost: -5.0
   terminationHeight: 0.7
 
   plane:

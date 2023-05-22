@@ -30,6 +30,7 @@ class Chair(VecTask):
         self.tilt_weight = self.cfg["env"]["tiltWeight"]
         self.move_forward_weight = self.cfg["env"]["moveForwardWeight"]
         self.height_weight = self.cfg["env"]["heightWeight"]
+        self.alive_weight = self.cfg["env"]["aliveWeight"]
         self.actions_cost_scale = self.cfg["env"]["actionsCost"]
         self.energy_cost_scale = self.cfg["env"]["energyCost"]
         self.joints_at_limit_cost_scale = self.cfg["env"]["jointsAtLimitCost"]
@@ -86,7 +87,7 @@ class Chair(VecTask):
         self.basis_vec0 = self.heading_vec.clone()
         self.basis_vec1 = self.up_vec.clone()
 
-        self.targets = to_torch([1000, 0, 0], device=self.device).repeat((self.num_envs, 1))
+        self.targets = to_torch([10, 0, 0], device=self.device).repeat((self.num_envs, 1))
         self.target_dirs = to_torch([1, 0, 0], device=self.device).repeat((self.num_envs, 1))
         self.dt = self.cfg["sim"]["dt"]
         self.potentials = to_torch([-1000./self.dt], device=self.device).repeat(self.num_envs)
@@ -201,6 +202,7 @@ class Chair(VecTask):
             self.tilt_weight,
             self.move_forward_weight,
             self.height_weight,
+            self.alive_weight,
             self.potentials,
             self.prev_potentials,
             self.actions_cost_scale,
@@ -306,6 +308,7 @@ def compute_chair_reward(
     tilt_weight,
     move_forward_weight,
     height_weight,
+    alive_weight,
     potentials,
     prev_potentials,
     actions_cost_scale,
@@ -314,7 +317,7 @@ def compute_chair_reward(
     termination_height,
     death_cost,
     max_episode_length):
-    # type: (Tensor, Tensor, Tensor, Tensor, float, float, float, float, float, Tensor, Tensor, float, float, float, float, float, float) -> Tuple[Tensor, Tensor]
+    # type: (Tensor, Tensor, Tensor, Tensor, float, float, float, float, float, float, Tensor, Tensor, float, float, float, float, float, float) -> Tuple[Tensor, Tensor]
 
     # print(obs_buf[0, :][3:7])
     # cost from tilt
@@ -341,7 +344,7 @@ def compute_chair_reward(
     actions_cost = torch.sum(actions ** 2, dim=-1)
 
     # reward for duration of being alive
-    alive_reward = torch.ones_like(potentials) * 2.0
+    alive_reward = torch.ones_like(potentials) * alive_weight
     progress_reward = potentials - prev_potentials
 
     total_reward = progress_reward + move_forward_reward + height_reward + alive_reward - tilt_cost - actions_cost 
