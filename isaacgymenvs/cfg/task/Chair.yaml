@@ -6,8 +6,8 @@ physics_engine: ${..physics_engine}
 # if given, will override the device setting in gym.
 env:
   numEnvs: ${resolve_default:4096,${...num_envs}}
-  envSpacing: 5
-  episodeLength: 1000
+  envSpacing: 1
+  episodeLength: 500
   enableDebugVis: False
 
   clipActions: 1.0
@@ -18,6 +18,9 @@ env:
   # reward parameters
   headingWeight: 0.5
   upWeight: 0.1
+  tiltWeight: 10
+  moveForwardWeight: 1
+  heightWeight: 1
 
   # cost parameters
   actionsCost: 0.005
@@ -26,7 +29,7 @@ env:
   contactForceScale: 0.1
   jointsAtLimitCost: 0.1
   deathCost: -2.0
-  terminationHeight: 0.31
+  terminationHeight: 0.7
 
   plane:
     staticFriction: 1.0
@@ -74,7 +77,7 @@ task:
       operation: "additive"
       distribution: "gaussian"
     actor_params:
-      ant:
+      chair:
         color: True
         rigid_body_properties:
           mass: 

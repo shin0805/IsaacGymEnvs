@@ -22,9 +22,12 @@ class Chair(VecTask):
         self.randomize = self.cfg["task"]["randomize"]
         self.dof_vel_scale = self.cfg["env"]["dofVelocityScale"]
         self.contact_force_scale = self.cfg["env"]["contactForceScale"]
-        self.power_scale = self.cfg["env"]["powerScale"]
+        self.power_scale = self.cfg["env"]["powerScale"] # 1.0
         self.heading_weight = self.cfg["env"]["headingWeight"]
         self.up_weight = self.cfg["env"]["upWeight"]
+        self.tilt_weight = self.cfg["env"]["tiltWeight"]
+        self.move_forward_weight = self.cfg["env"]["moveForwardWeight"]
+        self.height_weight = self.cfg["env"]["heightWeight"]
         self.actions_cost_scale = self.cfg["env"]["actionsCost"]
         self.energy_cost_scale = self.cfg["env"]["energyCost"]
         self.joints_at_limit_cost_scale = self.cfg["env"]["jointsAtLimitCost"]
@@ -36,14 +39,15 @@ class Chair(VecTask):
         self.plane_dynamic_friction = self.cfg["env"]["plane"]["dynamicFriction"]
         self.plane_restitution = self.cfg["env"]["plane"]["restitution"]
 
-        self.cfg["env"]["numObservations"] = 28 # 60
-        self.cfg["env"]["numActions"] = 6 # 8
+        self.cfg["env"]["numObservations"] = 19 # pos(3) + rot(4) + vel(3) + omega(3) + action(6)
+        self.cfg["env"]["numActions"] = 6 
 
         super().__init__(config=self.cfg, rl_device=rl_device, sim_device=sim_device, graphics_device_id=graphics_device_id, headless=headless, virtual_screen_capture=virtual_screen_capture, force_render=force_render)
 
         if self.viewer != None:
-            cam_pos = gymapi.Vec3(50.0, 25.0, 2.4)
-            cam_target = gymapi.Vec3(45.0, 25.0, 0.0)
+            cam_offset = 20
+            cam_pos = gymapi.Vec3(2 + cam_offset, 0.5 + cam_offset, 1.5)
+            cam_target = gymapi.Vec3(0.0 + cam_offset, 0.0 + cam_offset, 0.0)
             self.gym.viewer_camera_look_at(self.viewer, None, cam_pos, cam_target)
             
 
@@ -125,16 +129,16 @@ class Chair(VecTask):
         asset_options.angular_damping = 0.0
 
         chair_asset = self.gym.load_asset(self.sim, asset_root, asset_file, asset_options)
-        self.num_dof = self.gym.get_asset_dof_count(chair_asset)
-        self.num_bodies = self.gym.get_asset_rigid_body_count(chair_asset)
+        self.num_dof = self.gym.get_asset_dof_count(chair_asset) # 6
+        self.num_bodies = self.gym.get_asset_rigid_body_count(chair_asset) # 7
 
         # Note - for this asset we are loading the actuator info from the MJCF
         actuator_props = self.gym.get_asset_actuator_properties(chair_asset)
-        motor_efforts = [prop.motor_effort for prop in actuator_props]
-        self.joint_gears = to_torch(motor_efforts, device=self.device)
+        motor_efforts = [prop.motor_effort for prop in actuator_props] # 0
+        self.joint_gears = to_torch(motor_efforts, device=self.device) # 0
 
         start_pose = gymapi.Transform()
-        start_pose.p = gymapi.Vec3(*get_axis_params(0.44, self.up_axis_idx))
+        start_pose.p = gymapi.Vec3(*get_axis_params(0, self.up_axis_idx))
 
         self.start_rotation = torch.tensor([start_pose.r.x, start_pose.r.y, start_pose.r.z, start_pose.r.w], device=self.device)
 
@@ -192,6 +196,9 @@ class Chair(VecTask):
             self.actions,
             self.up_weight,
             self.heading_weight,
+            self.tilt_weight,
+            self.move_forward_weight,
+            self.height_weight,
             self.potentials,
             self.prev_potentials,
             self.actions_cost_scale,
@@ -209,8 +216,8 @@ class Chair(VecTask):
         #print("Feet forces and torques: ", self.vec_sensor_tensor[0, :])
         # print(self.vec_sensor_tensor.shape)
 
-        self.obs_buf[:], self.up_vec[:], self.heading_vec[:] = compute_chair_observations(
-            self.obs_buf, self.root_states, self.targets,
+        self.obs_buf[:], self.potentials[:], self.prev_potentials[:] = compute_chair_observations(
+            self.obs_buf, self.root_states, self.targets, self.potentials, 
             self.inv_start_rot, self.dof_pos, self.dof_vel,
             self.dof_limits_lower, self.dof_limits_upper, self.dof_vel_scale,
             self.actions, self.dt,
@@ -247,9 +254,7 @@ class Chair(VecTask):
 
     def pre_physics_step(self, actions):
         self.actions = actions.clone().to(self.device)
-        forces = self.actions * self.joint_gears * self.power_scale
-        force_tensor = gymtorch.unwrap_tensor(forces)
-        self.gym.set_dof_actuation_force_tensor(self.sim, force_tensor)
+        self.gym.set_dof_position_target_tensor(self.sim, gymtorch.unwrap_tensor(actions))
 
     def post_physics_step(self):
         self.progress_buf += 1
@@ -296,6 +301,9 @@ def compute_chair_reward(
     actions,
     up_weight,
     heading_weight,
+    tilt_weight,
+    move_forward_weight,
+    height_weight,
     potentials,
     prev_potentials,
     actions_cost_scale,
@@ -304,67 +312,72 @@ def compute_chair_reward(
     termination_height,
     death_cost,
     max_episode_length):
-    # type: (Tensor, Tensor, Tensor, Tensor, float, float, Tensor, Tensor, float, float, float, float, float, float) -> Tuple[Tensor, Tensor]
+    # type: (Tensor, Tensor, Tensor, Tensor, float, float, float, float, float, Tensor, Tensor, float, float, float, float, float, float) -> Tuple[Tensor, Tensor]
 
+    # print(obs_buf[0, :][3:7])
+    # cost from tilt
+    zero_rot = torch.zeros_like(obs_buf[:, 3:7])
+    zero_rot[:, 3] = 1.0
+    tilt_cost = torch.norm(obs_buf[:, 3:7] - zero_rot, dim=1) * tilt_weight
+    # print(tilt_cost[0])
+    
     # reward from direction headed
-    heading_weight_tensor = torch.ones_like(obs_buf[:, 11]) * heading_weight
-    heading_reward = torch.where(obs_buf[:, 11] > 0.8, heading_weight_tensor, heading_weight * obs_buf[:, 11] / 0.8)
+    # heading_weight_tensor = torch.ones_like(obs_buf[:, 11]) * heading_weight
+    # heading_reward = torch.where(obs_buf[:, 11] > 0.8, heading_weight_tensor, heading_weight * obs_buf[:, 11] / 0.8)
 
     # aligning up axis of chair and environment
-    up_reward = torch.zeros_like(heading_reward)
-    up_reward = torch.where(obs_buf[:, 10] > 0.93, up_reward + up_weight, up_reward)
+    # up_reward = torch.zeros_like(heading_reward)
+    # up_reward = torch.where(obs_buf[:, 10] > 0.93, up_reward + up_weight, up_reward)
+
+    # reward from move forward
+    move_forward_reward = obs_buf[:, 7] * move_forward_weight
+
+    # reward from move height
+    height_reward = obs_buf[:, 2] * height_weight
 
     # energy penalty for movement
     actions_cost = torch.sum(actions ** 2, dim=-1)
 
-    # reward for duration of staying alive
-    alive_reward = torch.ones_like(heading_reward) * 0.5
+    # reward for duration of being alive
+    alive_reward = torch.ones_like(potentials) * 2.0
+    progress_reward = potentials - prev_potentials
 
-    total_reward = alive_reward + up_reward + heading_reward - actions_cost 
+    total_reward = progress_reward + move_forward_reward + height_reward + alive_reward - tilt_cost - actions_cost 
+    # adjust reward for fallen agents
+    # total_reward = torch.where(obs_buf[:, 2] < termination_height, torch.ones_like(total_reward) * death_cost, total_reward)
+
+    # print(total_reward[0])
 
     # reset agents
-    reset = torch.where(obs_buf[:, 0] < termination_height, torch.ones_like(reset_buf), reset_buf)
-    reset = torch.where(progress_buf >= max_episode_length - 1, torch.ones_like(reset_buf), reset)
-    reset = reset_buf
+    # print(obs_buf[0, :])
+    # reset = torch.where(obs_buf[:, 2] < termination_height, torch.ones_like(reset_buf), reset_buf)
+    reset = torch.where(progress_buf >= max_episode_length - 1, torch.ones_like(reset_buf), reset_buf)
+    # reset = reset_buf
+    # reset = torch.where(progress_buf >= max_episode_length - 1, torch.ones_like(reset_buf), reset_buf)
 
     return total_reward, reset
 
 
 @torch.jit.script
-def compute_chair_observations(obs_buf, root_states, targets,
+def compute_chair_observations(obs_buf, root_states, targets, potentials,
                              inv_start_rot, dof_pos, dof_vel,
                              dof_limits_lower, dof_limits_upper, dof_vel_scale,
                              actions, dt,
                              basis_vec0, basis_vec1, up_axis_idx):
-    # type: (Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, float, Tensor, float, Tensor, Tensor, int) -> Tuple[Tensor, Tensor, Tensor]
+    # type: (Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, float, Tensor, float, Tensor, Tensor, int) -> Tuple[Tensor, Tensor, Tensor]
 
+    # print(root_states.size()) # [512, 13]
     torso_position = root_states[:, 0:3]
     torso_rotation = root_states[:, 3:7]
     velocity = root_states[:, 7:10]
     ang_velocity = root_states[:, 10:13]
 
     to_target = targets - torso_position
-    to_target[:, 2] = 0.0
+    to_target[:, 2] = 0
 
-    torso_quat, up_proj, heading_proj, up_vec, heading_vec = compute_heading_and_up(
-        torso_rotation, inv_start_rot, to_target, basis_vec0, basis_vec1, 2)
+    prev_potentials_new = potentials.clone()
+    potentials = -torch.norm(to_target, p=2, dim=-1) / dt
 
-    vel_loc, angvel_loc, roll, pitch, yaw, angle_to_target = compute_rot(
-        torso_quat, velocity, ang_velocity, targets, torso_position)
+    obs = torch.cat((torso_position, torso_rotation, velocity, ang_velocity, actions), dim=-1)
 
-    dof_pos_scaled = unscale(dof_pos, dof_limits_lower, dof_limits_upper)
-
-    # obs_buf shapes: 1, 3, 3, 1, 1, 1, 1, 1, num_dofs(8), num_dofs(8), 24, num_dofs(8)
-    # obs = torch.cat((torso_position[:, up_axis_idx].view(-1, 1), vel_loc, angvel_loc,
-    #                  yaw.unsqueeze(-1), roll.unsqueeze(-1), angle_to_target.unsqueeze(-1),
-    #                  up_proj.unsqueeze(-1), heading_proj.unsqueeze(-1), dof_pos_scaled,
-    #                  dof_vel * dof_vel_scale, sensor_force_torques.view(-1, 24) * contact_force_scale,
-    #                  actions), dim=-1)
-
-    # obs_buf shapes: 1, 3, 3, 3, num_dofs(3), num_dofs(3), num_dofs(3)
-    obs = torch.cat((torso_position[:, up_axis_idx].view(-1, 1), vel_loc, angvel_loc,
-                     yaw.unsqueeze(-1), roll.unsqueeze(-1), pitch.unsqueeze(-1),
-                     dof_pos_scaled, dof_vel * dof_vel_scale,
-                     actions), dim=-1)
-
-    return obs, up_vec, heading_vec
+    return obs, potentials, prev_potentials_new

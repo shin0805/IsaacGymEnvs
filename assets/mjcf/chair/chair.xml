@@ -30,7 +30,10 @@
   </asset>
 
   <worldbody>
+    <geom name="floor" pos="0 0 0" size="0 0 .25" type="plane" material="matplane" condim="3" friction="0.1 0.0005, 0.00001"/>
+		<!--
     <geom name="floor" pos="0 0 0" size="0 0 .25" type="plane" material="matplane" condim="3"/>
+		-->
 
     <light directional="false" diffuse=".2 .2 .2" specular="0 0 0" pos="0 0 5" dir="0 0 -1" castshadow="false"/>
     <light mode="targetbodycom" target="chair" directional="false" diffuse=".8 .8 .8" specular="0.3 0.3 0.3" pos="0 0 4.0" dir="0 0 -1"/>
@@ -48,7 +51,7 @@
 
 			  <body>
 			  		<!--<joint name="joint1" type="hinge" axis="1 0 0" damping=".010" pos=".12212 -.04497 .0061"/>-->
-			  	<geom name="leg1" type="mesh" mesh="leg1" rgba=".5 .3 0 1"/>
+			  	<geom name="leg1" type="mesh" mesh="leg1" rgba=".5 .3 0 1" friction="0.1 0.0005, 0.00001"/>
 			  	<joint name="joint1" type="hinge" axis="-1 0 0" damping=".010" pos=".13494 .0369 .10365" limited="true" range="-1.57 1.57"/>
 			  </body>
 			</body>
@@ -61,7 +64,7 @@
 
 			  <body>
 			  		<!--<joint name="joint3" type="hinge" axis="1 0 0" damping=".010" pos=".03352 -.04436 .0061"/>-->
-		      <geom name="leg2" type="mesh" mesh="leg2" rgba=".5 .3 0 1"/>
+		      <geom name="leg2" type="mesh" mesh="leg2" rgba=".5 .3 0 1" friction="0.1 0.0005, 0.00001"/>
 			  	<joint name="joint3" type="hinge" axis="0 1 0" damping=".010" pos=".04751 .0369 .10365" limited="true" range="-1.57 1.57"/>
 			  </body>
 			</body>
@@ -74,7 +77,7 @@
 
 			  <body>
 			  		<!--<joint name="joint5" type="hinge" axis="1 0 0" damping=".010" pos=".03479 .04376 .10365"/>-->
-		      <geom name="leg3" type="mesh" mesh="leg3" rgba=".5 .3 0 1"/>
+		      <geom name="leg3" type="mesh" mesh="leg3" rgba=".5 .3 0 1" friction="0.1 0.0005, 0.00001"/>
 			  	<joint name="joint5" type="hinge" axis="0 -1 0" damping=".010" pos=".04751 .12513 .10365" limited="true" range="-1.57 1.57"/>
 			  </body>
 			</body>
