@@ -9,6 +9,8 @@ from isaacgym.gymtorch import *
 from isaacgymenvs.utils.torch_jit_utils import *
 from isaacgymenvs.tasks.base.vec_task import VecTask
 
+import numpy as np
+from scipy.spatial.transform import Rotation
 
 class Chair(VecTask):
 
@@ -344,14 +346,13 @@ def compute_chair_reward(
 
     total_reward = progress_reward + move_forward_reward + height_reward + alive_reward - tilt_cost - actions_cost 
     # adjust reward for fallen agents
-    # total_reward = torch.where(obs_buf[:, 2] < termination_height, torch.ones_like(total_reward) * death_cost, total_reward)
+    total_reward = torch.where(torch.norm(obs_buf[:, 3:7] - zero_rot, dim=1) > 0.7, torch.ones_like(total_reward) * death_cost, total_reward)
 
     # print(total_reward[0])
 
     # reset agents
-    # print(obs_buf[0, :])
-    # reset = torch.where(obs_buf[:, 2] < termination_height, torch.ones_like(reset_buf), reset_buf)
-    reset = torch.where(progress_buf >= max_episode_length - 1, torch.ones_like(reset_buf), reset_buf)
+    reset = torch.where(torch.norm(obs_buf[:, 3:7] - zero_rot, dim=1) > 0.7, torch.ones_like(reset_buf), reset_buf)
+    reset = torch.where(progress_buf >= max_episode_length - 1, torch.ones_like(reset_buf), reset)
     # reset = reset_buf
     # reset = torch.where(progress_buf >= max_episode_length - 1, torch.ones_like(reset_buf), reset_buf)
 

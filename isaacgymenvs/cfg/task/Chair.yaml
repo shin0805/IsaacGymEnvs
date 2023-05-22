@@ -7,7 +7,7 @@ physics_engine: ${..physics_engine}
 env:
   numEnvs: ${resolve_default:4096,${...num_envs}}
   envSpacing: 1
-  episodeLength: 500
+  episodeLength: 100000
   enableDebugVis: False
 
   clipActions: 1.0
@@ -17,10 +17,10 @@ env:
 
   # reward parameters
   headingWeight: 0.5
-  upWeight: 0.1
-  tiltWeight: 10
-  moveForwardWeight: 1
-  heightWeight: 1
+  upWeight: 0.5
+  tiltWeight: 5
+  moveForwardWeight: 5
+  heightWeight: 0.5
 
   # cost parameters
   actionsCost: 0.005
@@ -32,8 +32,8 @@ env:
   terminationHeight: 0.7
 
   plane:
-    staticFriction: 1.0
-    dynamicFriction: 1.0
+    staticFriction: 1
+    dynamicFriction: 1
     restitution: 0.0
 
   asset:
