@@ -31,6 +31,7 @@ class Chair(VecTask):
         self.move_forward_weight = self.cfg["env"]["moveForwardWeight"]
         self.height_weight = self.cfg["env"]["heightWeight"]
         self.alive_weight = self.cfg["env"]["aliveWeight"]
+        self.progress_weight = self.cfg["env"]["progressWeight"]
         self.actions_cost_scale = self.cfg["env"]["actionsCost"]
         self.energy_cost_scale = self.cfg["env"]["energyCost"]
         self.joints_at_limit_cost_scale = self.cfg["env"]["jointsAtLimitCost"]
@@ -207,6 +208,7 @@ class Chair(VecTask):
             self.move_forward_weight,
             self.height_weight,
             self.alive_weight,
+            self.progress_weight,
             self.potentials,
             self.prev_potentials,
             self.actions_cost_scale,
@@ -314,6 +316,7 @@ def compute_chair_reward(
     move_forward_weight,
     height_weight,
     alive_weight,
+    progress_weight,
     potentials,
     prev_potentials,
     actions_cost_scale,
@@ -323,7 +326,7 @@ def compute_chair_reward(
     termination_tilt,
     death_cost,
     max_episode_length):
-    # type: (Tensor, Tensor, Tensor, Tensor, float, float, float, float, float, float, Tensor, Tensor, float, float, float, float, float, float, float) -> Tuple[Tensor, Tensor]
+    # type: (Tensor, Tensor, Tensor, Tensor, float, float, float, float, float, float, float, Tensor, Tensor, float, float, float, float, float, float, float) -> Tuple[Tensor, Tensor]
 
     # print(obs_buf[0, :])
     # cost from tilt
@@ -351,7 +354,7 @@ def compute_chair_reward(
 
     # reward for duration of being alive
     alive_reward = torch.ones_like(potentials) * alive_weight
-    progress_reward = potentials - prev_potentials
+    progress_reward = (potentials - prev_potentials) * progress_weight
 
     total_reward = progress_reward + move_forward_reward + height_reward + alive_reward - tilt_cost - actions_cost 
     # adjust reward for fallen agents
@@ -393,11 +396,6 @@ def compute_chair_observations(obs_buf, root_states, targets, potentials, action
     actions_ = actions.view(-1, 1, actions.size()[1])
     action_history = torch.cat((actions_, action_history), dim=1) # 先頭に追加
     action_history = action_history[:, :-1, :] # 末尾を削除
-    # print(actions.size())
-    # print(action_history.size())
-    # print(torso_rotation.size())
-    # print(action_history[0, :])
-    # print(action_history.view(4096, -1).size())
 
     obs = torch.cat((torso_position, torso_rotation, velocity, ang_velocity, action_history.view(action_history.size()[0], -1)), dim=-1)
 
