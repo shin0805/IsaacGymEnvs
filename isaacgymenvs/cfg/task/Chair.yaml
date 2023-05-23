@@ -18,19 +18,20 @@ env:
   # reward parameters
   headingWeight: 0.5
   upWeight: 0.5
-  tiltWeight: 5
-  moveForwardWeight: 5
+  moveForwardWeight: 0.5
   heightWeight: 0.5
-  aliveWeight: 2.0
+  aliveWeight: 0.5
 
   # cost parameters
+  tiltWeight: 0.5
   actionsCost: 0.005
   energyCost: 0.05
   dofVelocityScale: 0.2
   contactForceScale: 0.1
   jointsAtLimitCost: 0.1
-  deathCost: -5.0
+  deathCost: -2
   terminationHeight: 0.7
+  terminationTilt: 0.9
 
   plane:
     staticFriction: 1
