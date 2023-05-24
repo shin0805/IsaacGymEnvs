@@ -39,50 +39,52 @@
     <light directional="false" diffuse=".2 .2 .2" specular="0 0 0" pos="0 0 5" dir="0 0 -1" castshadow="false"/>
     <light mode="targetbodycom" target="chair" directional="false" diffuse=".8 .8 .8" specular="0.3 0.3 0.3" pos="0 0 4.0" dir="0 0 -1"/>
 
-		<body name="chair" pos="0 0 0">
+		<body name="dummy" pos="0.095 0.0785 0.10365">
 			<freejoint name="root"/>
-			<geom name="seat" type="mesh" mesh="seat" rgba="1 .8 0 1"/>
-		  <geom name="face" type="mesh" mesh="face" rgba="1 .8 0 1"/>
 			<!--<joint type="free"/>-->
+		  <body name="chair" pos="-0.095 -0.0785 -0.10365">
+		  	<geom name="seat" type="mesh" mesh="seat" rgba="1 .8 0 1"/>
+		    <geom name="face" type="mesh" mesh="face" rgba="1 .8 0 1"/>
 
-			<body>
-					<!--<joint name="joint2" type="hinge" axis="0 1 0" damping=".010" pos=".12223 -.01378 .0061"/>-->
-				<geom name="bracket1" type="mesh" mesh="bracket1" rgba="1 .8 0 1"/>
-				<joint name="joint2" type="hinge" axis="0 1 0" damping=".010" pos=".13494 .06759 .10365" limited="true" range="-1.57 1.57"/>
+		  	<body>
+		  			<!--<joint name="joint2" type="hinge" axis="0 1 0" damping=".010" pos=".12223 -.01378 .0061"/>-->
+		  		<geom name="bracket1" type="mesh" mesh="bracket1" rgba="1 .8 0 1"/>
+		  		<joint name="joint2" type="hinge" axis="0 1 0" damping=".010" pos=".13494 .06759 .10365" limited="true" range="-1.57 1.57"/>
 
-			  <body>
-			  		<!--<joint name="joint1" type="hinge" axis="1 0 0" damping=".010" pos=".12212 -.04497 .0061"/>-->
-						<geom name="leg1" type="mesh" mesh="leg1" rgba=".5 .3 0 1"/> <!--condim="1" friction="0.1 0.0005, 0.00001"/>-->
-			  	<joint name="joint1" type="hinge" axis="-1 0 0" damping=".010" pos=".13494 .0369 .10365" limited="true" range="-1.57 1.57"/>
-			  </body>
-			</body>
-
-
-			<body>
-					<!--<joint name="joint4" type="hinge" axis="0 1 0" damping=".010" pos=".06521 -.04447 .0061"/>-->
-				<geom name="bracket2" type="mesh" mesh="bracket2" rgba="1 .8 0 1"/>
-				<joint name="joint4" type="hinge" axis="1 0 0" damping=".010" pos=".07903 .0369 .10365" limited="true" range="-1.57 1.57"/>
-
-			  <body>
-			  		<!--<joint name="joint3" type="hinge" axis="1 0 0" damping=".010" pos=".03352 -.04436 .0061"/>-->
-						<geom name="leg2" type="mesh" mesh="leg2" rgba=".5 .3 0 1"/> <!-- condim="1" friction="0.1 0.0005, 0.00001"/> -->
-			  	<joint name="joint3" type="hinge" axis="0 1 0" damping=".010" pos=".04751 .0369 .10365" limited="true" range="-1.57 1.57"/>
-			  </body>
-			</body>
+		  	  <body>
+		  	  		<!--<joint name="joint1" type="hinge" axis="1 0 0" damping=".010" pos=".12212 -.04497 .0061"/>-->
+		  				<geom name="leg1" type="mesh" mesh="leg1" rgba=".5 .3 0 1"/> <!--condim="1" friction="0.1 0.0005, 0.00001"/>-->
+		  	  	<joint name="joint1" type="hinge" axis="-1 0 0" damping=".010" pos=".13494 .0369 .10365" limited="true" range="-1.57 1.57"/>
+		  	  </body>
+		  	</body>
 
 
-			<body>
-					<!--<joint name="joint6" type="hinge" axis="0 1 0" damping=".010" pos=".06598 .04332 .10365"/>-->
-				<geom name="bracket3" type="mesh" mesh="bracket3" rgba="1 .8 0 1"/>
-				<joint name="joint6" type="hinge" axis="1 0 0" damping=".010" pos=".07903 .12513 .10365" limited="true" range="-1.57 1.57"/>
+		  	<body>
+		  			<!--<joint name="joint4" type="hinge" axis="0 1 0" damping=".010" pos=".06521 -.04447 .0061"/>-->
+		  		<geom name="bracket2" type="mesh" mesh="bracket2" rgba="1 .8 0 1"/>
+		  		<joint name="joint4" type="hinge" axis="1 0 0" damping=".010" pos=".07903 .0369 .10365" limited="true" range="-1.57 1.57"/>
 
-			  <body>
-			  		<!--<joint name="joint5" type="hinge" axis="1 0 0" damping=".010" pos=".03479 .04376 .10365"/>-->
-						<geom name="leg3" type="mesh" mesh="leg3" rgba=".5 .3 0 1"/> <!-- condim="1" friction="0.1 0.0005, 0.00001"/> -->
-			  	<joint name="joint5" type="hinge" axis="0 -1 0" damping=".010" pos=".04751 .12513 .10365" limited="true" range="-1.57 1.57"/>
-			  </body>
-			</body>
+		  	  <body>
+		  	  		<!--<joint name="joint3" type="hinge" axis="1 0 0" damping=".010" pos=".03352 -.04436 .0061"/>-->
+		  				<geom name="leg2" type="mesh" mesh="leg2" rgba=".5 .3 0 1"/> <!-- condim="1" friction="0.1 0.0005, 0.00001"/> -->
+		  	  	<joint name="joint3" type="hinge" axis="0 1 0" damping=".010" pos=".04751 .0369 .10365" limited="true" range="-1.57 1.57"/>
+		  	  </body>
+		  	</body>
 
+
+		  	<body>
+		  			<!--<joint name="joint6" type="hinge" axis="0 1 0" damping=".010" pos=".06598 .04332 .10365"/>-->
+		  		<geom name="bracket3" type="mesh" mesh="bracket3" rgba="1 .8 0 1"/>
+		  		<joint name="joint6" type="hinge" axis="1 0 0" damping=".010" pos=".07903 .12513 .10365" limited="true" range="-1.57 1.57"/>
+
+		  	  <body>
+		  	  		<!--<joint name="joint5" type="hinge" axis="1 0 0" damping=".010" pos=".03479 .04376 .10365"/>-->
+		  				<geom name="leg3" type="mesh" mesh="leg3" rgba=".5 .3 0 1"/> <!-- condim="1" friction="0.1 0.0005, 0.00001"/> -->
+		  	  	<joint name="joint5" type="hinge" axis="0 -1 0" damping=".010" pos=".04751 .12513 .10365" limited="true" range="-1.57 1.57"/>
+		  	  </body>
+		  	</body>
+
+		  </body>
 		</body>
   </worldbody>
 

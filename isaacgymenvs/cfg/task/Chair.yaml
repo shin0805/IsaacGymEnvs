@@ -25,14 +25,14 @@ env:
 
   # cost parameters
   tiltWeight: 2
-  terminationTilt: 1.3 # 0.4 -> 0.28 -> 0.3
+  terminationTilt: 0.3 # 0.4 -> 0.28 -> 0.3
+  terminationHeight: 0.06
   actionsCost: 0.005
   energyCost: 0.05
   dofVelocityScale: 0.2
   contactForceScale: 0.1
   jointsAtLimitCost: 0.1
   deathCost: -2
-  terminationHeight: 0.7
 
   plane:
     staticFriction: 0.3

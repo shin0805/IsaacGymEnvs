@@ -50,7 +50,7 @@ params:
     normalize_advantage: True
     gamma: 0.99
     tau: 0.95
-    learning_rate: 1e-4 # 3e-4
+    learning_rate: 1e-8 # 3e-4
     lr_schedule: adaptive
     schedule_type: legacy
     kl_threshold: 0.008
