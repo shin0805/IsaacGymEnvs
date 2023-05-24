@@ -18,13 +18,13 @@ env:
   # reward parameters
   headingWeight: 0.5 # 0.5
   upWeight: 0.5 # 0.5
-  moveForwardWeight: 2 # 5
+  moveForwardWeight: 4 # 5
   heightWeight: 0.5 # 0.5
-  aliveWeight: 2.0
-  progressWeight: 2.0
+  aliveWeight: 3.0
+  progressWeight: 4.0
 
   # cost parameters
-  tiltWeight: 2
+  tiltWeight: 1
   terminationTilt: 0.3 # 0.4 -> 0.28 -> 0.3
   terminationHeight: 0.06
   actionsCost: 0.005
