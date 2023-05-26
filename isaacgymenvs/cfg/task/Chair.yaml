@@ -7,7 +7,7 @@ physics_engine: ${..physics_engine}
 env:
   numEnvs: ${resolve_default:4096,${...num_envs}}
   envSpacing: 1
-  episodeLength: 250
+  episodeLength: 5000
   enableDebugVis: False
 
   clipActions: 1.0
@@ -18,7 +18,7 @@ env:
   # reward parameters
   omegaWeight: 0
   headingWeight: 0.5 # 0.5
-  moveForwardWeight: 5 # 5
+  moveForwardWeight: 4 # 5
   heightWeight: 0.5 # 0.5 -> 5
   aliveWeight: 3 # 3.0
   progressWeight: 4
