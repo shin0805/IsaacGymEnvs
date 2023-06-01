@@ -13,7 +13,7 @@ env:
   clipActions: 1.0
 
   powerScale: 1.0
-  controlFrequencyInv: 1 # 60 Hz
+  controlFrequencyInv: 3 # 20 Hz
 
   # reward parameters
   omegaWeight: 0
@@ -26,7 +26,7 @@ env:
 
   # cost parameters
   tiltWeight: 1
-  terminationTilt: 0.3 # 0.4 -> 0.28 -> 0.3
+  terminationTilt: 0.7 # 0.4 -> 0.28 -> 0.3
   terminationHeight: 0.06
   actionsCost: 0.005
   energyCost: 0.05
@@ -47,7 +47,7 @@ env:
   enableCameraSensors: False
 
 sim:
-  dt: 0.0166 # 1/60 s
+  dt: 0.05 # 1/20 s
   substeps: 2
   up_axis: "z"
   use_gpu_pipeline: ${eq:${...pipeline},"gpu"}
@@ -68,16 +68,16 @@ sim:
     contact_collection: 0 # 0: CC_NEVER (don't collect contact info), 1: CC_LAST_SUBSTEP (collect only contacts on last substep), 2: CC_ALL_SUBSTEPS (broken - do not use!)
 
 task:
-  randomize: False
+  randomize: True
   randomization_params:
     # specify which attributes to randomize for each actor type and property
-    frequency: 600   # Define how many environment steps between generating new randomizations
+    frequency: 720   # Define how many environment steps between generating new randomizations
     observations:
-      range: [0, .002] # range for the white noise
+      range: [0, .05] # range for the white noise
       operation: "additive"
       distribution: "gaussian"
     actions:
-      range: [0., .02]
+      range: [0., .05]
       operation: "additive"
       distribution: "gaussian"
     actor_params:
@@ -88,21 +88,49 @@ task:
             range: [0.5, 1.5]
             operation: "scaling"
             distribution: "uniform"
-            setup_only: True # Property will only be randomized once before simulation is started. See Domain Randomization Documentation for more info.
+            setup_only: False # Property will only be randomized once before simulation is started. See Domain Randomization Documentation for more info.
         dof_properties:
           damping: 
-            range: [0.5, 1.5]
+            range: [0.01, 2.0]
+            operation: "scaling"
+            distribution: "loguniform"
+          stiffness:
+            range: [0.01, 2.0]
+            operation: "scaling"
+            distribution: "loguniform"
+            # schedule: "linear"  # "linear" will scale the current random sample by `min(current num steps, schedule_steps) / schedule_steps`
+            # schedule_steps: 30000
+          effort:
+            range: [0.4, 1.0]
             operation: "scaling"
             distribution: "uniform"
-          stiffness: 
-            range: [0.5, 1.5]
+          friction:
+            range: [0.0, 1.0]
             operation: "scaling"
             distribution: "uniform"
+          armature:
+            range: [0.0, 1.0]
+            operation: "scaling"
+            distribution: "uniform"
+          # damping: 
+          #   range: [0.5, 1.5]
+          #   operation: "scaling"
+          #   distribution: "uniform"
+          # stiffness: 
+          #   range: [0.5, 1.5]
+          #   operation: "scaling"
+          #   distribution: "uniform"
           lower:
-            range: [0, 0.01]
+            # range: [0, 0.01]
+            # operation: "additive"
+            # distribution: "gaussian"
+            range: [-0.5, 0.5]
             operation: "additive"
-            distribution: "gaussian"
+            distribution: "uniform"
           upper:
-            range: [0, 0.01]
+            # range: [0, 0.01]
+            # operation: "additive"
+            # distribution: "gaussian"
+            range: [-0.5, 0.5]
             operation: "additive"
-            distribution: "gaussian"
+            distribution: "uniform"
