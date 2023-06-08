@@ -372,7 +372,8 @@ def compute_chair_reward(
     # height_reward = torso_pos[:, 2] / (1000 * torch.norm(obs_buf[:, 0:4] - zero_rot, dim=1) + 1) * 1000 * height_weight
 
     # energy penalty for movement
-    actions_cost = torch.sum(actions ** 2, dim=-1)
+    # actions_cost = torch.sum(actions ** 2, dim=-1) * actions_cost_scale
+    actions_cost = torch.sum((actions - obs_buf[:, 86:92]) ** 2, dim=-1) * actions_cost_scale
 
     # reward for duration of being alive
     alive_reward = torch.ones_like(potentials) * alive_weight
