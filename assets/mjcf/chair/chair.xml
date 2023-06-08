@@ -1,7 +1,7 @@
 <mujoco model="chair">
   <default>
     <joint armature="0.001" limited="true"/>
-    <geom condim="3" density="5.0" friction="1.5 0.1 0.1" margin="0.01" rgba="0.97 0.38 0.06 1"/>
+    <geom condim="3" density="400" margin="0.01" rgba="0.97 0.38 0.06 1"/>
   </default>
 
   <compiler inertiafromgeom="true" angle="radian"/>
@@ -20,7 +20,8 @@
   <asset>
 		<texture name="texplane" type="2d" builtin="checker" rgb1=".8 .8 .8" rgb2=".6 .6 .6" width="512" height="512" mark="cross" markrgb=".8 .8 .8"/>
 		<material name="matplane" reflectance="0.3" texture="texplane" texrepeat="1 1" texuniform="true"/>
-		<mesh name="face" scale="1e-3 1e-3 1e-3" file="./mesh/main-face-1.STL"/>
+    <!--<mesh name="face" scale="1e-3 1e-3 1e-3" file="./mesh/main-face-1.STL"/>-->
+		<mesh name="face" scale="1e-3 1e-3 1e-3" file="./mesh/face_dummy.STL"/>
 		<mesh name="leg1" scale="1e-3 1e-3 1e-3" file="./mesh/main-leg-4.STL"/>
 		<mesh name="bracket1" scale="1e-3 1e-3 1e-3" file="./mesh/main-axis-3.STL"/>
 		<mesh name="leg2" scale="1e-3 1e-3 1e-3" file="./mesh/main-leg-2.STL"/>
@@ -44,7 +45,8 @@
 			<!--<joint type="free"/>-->
 		  <body name="chair" pos="-0.095 -0.0785 -0.10365">
 		  	<geom name="seat" type="mesh" mesh="seat" rgba="1 .8 0 1"/>
-		    <geom name="face" type="mesh" mesh="face" rgba="1 .8 0 1"/>
+        <!--geom name="face" type="mesh" mesh="face" rgba="1 .8 0 1"/>-->
+		    <geom name="face" type="mesh" mesh="face" euler="0 3.1 -1.57" pos="0.018 0.157 0.235" rgba="1 .8 0 1"/>
 
 		  	<body>
 		  			<!--<joint name="joint2" type="hinge" axis="0 1 0" damping=".010" pos=".12223 -.01378 .0061"/>-->
@@ -89,12 +91,12 @@
   </worldbody>
 
   <actuator>
-		<position name="joint1" joint="joint1" kp="5" ctrllimited="true" ctrlrange="-1. 1." forcelimited="true" forcerange="-.04 .04"/>
-  	<position name="joint2" joint="joint2" kp="5" ctrllimited="true" ctrlrange="-1. 1." forcelimited="true" forcerange="-.04 .04"/>
-  	<position name="joint3" joint="joint3" kp="5" ctrllimited="true" ctrlrange="-1. 1." forcelimited="true" forcerange="-.04 .04"/>
-  	<position name="joint4" joint="joint4" kp="5" ctrllimited="true" ctrlrange="-1. 1." forcelimited="true" forcerange="-.04 .04"/>
-  	<position name="joint5" joint="joint5" kp="5" ctrllimited="true" ctrlrange="-1. 1." forcelimited="true" forcerange="-.04 .04"/>
-  	<position name="joint6" joint="joint6" kp="5" ctrllimited="true" ctrlrange="-1. 1." forcelimited="true" forcerange="-.04 .04"/>
+		<position name="joint1" joint="joint1" kp="5" ctrllimited="true" ctrlrange="-1. 1." forcelimited="true" forcerange="-.1764 .1764"/>
+  	<position name="joint2" joint="joint2" kp="5" ctrllimited="true" ctrlrange="-1. 1." forcelimited="true" forcerange="-.1764 .1764"/>
+  	<position name="joint3" joint="joint3" kp="5" ctrllimited="true" ctrlrange="-1. 1." forcelimited="true" forcerange="-.1764 .1764"/>
+  	<position name="joint4" joint="joint4" kp="5" ctrllimited="true" ctrlrange="-1. 1." forcelimited="true" forcerange="-.1764 .1764"/>
+  	<position name="joint5" joint="joint5" kp="5" ctrllimited="true" ctrlrange="-1. 1." forcelimited="true" forcerange="-.1764 .1764"/>
+  	<position name="joint6" joint="joint6" kp="5" ctrllimited="true" ctrlrange="-1. 1." forcelimited="true" forcerange="-.1764 .1764"/>
 		<!--
 		<motor name="joint1" joint="joint1" ctrllimited="true" ctrlrange="-1.57 1.57" forcelimited="true" forcerange="-.3 .3" gear="1"/>
   	<motor name="joint2" joint="joint2" ctrllimited="true" ctrlrange="-1.57 1.57" forcelimited="true" forcerange="-.3 .3" gear="1"/>
