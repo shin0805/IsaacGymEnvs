@@ -7,7 +7,7 @@ physics_engine: ${..physics_engine}
 env:
   numEnvs: ${resolve_default:4096,${...num_envs}}
   envSpacing: 1
-  episodeLength: 5000
+  episodeLength: 350
   enableDebugVis: False
 
   clipActions: 1.0
@@ -16,24 +16,33 @@ env:
   controlFrequencyInv: 3 # 20 Hz
 
   # reward parameters
-  omegaWeight: 0
-  headingWeight: 0.5 # 0.5
-  moveForwardWeight: 4 # 5
-  heightWeight: 0.5 # 0.5 -> 5
-  aliveWeight: 3 # 3.0
-  progressWeight: 4
-  upWeight: 0.5 # 0.5
+  headingWeight: 0.5
+  upWeight: 5
 
   # cost parameters
-  tiltWeight: 1
-  terminationTilt: 0.7 # 0.4 -> 0.28 -> 0.3
+  actionsCost: 0.01
+  deathCost: -1.0
   terminationHeight: 0.06
-  actionsCost: 0.005
+
+  # reward parameters
+  omegaWeight: 0
+  # headingWeight: 5 # 0.5
+  moveForwardWeight: 5 # 5
+  heightWeight: 1 # 0.5 -> 5
+  aliveWeight: 20 # 3.0
+  progressWeight: 10
+  # upWeight: 1 # 0.5
+
+  # cost parameters
+  tiltWeight: 0
+  terminationTilt: 0.7 # 0.4 -> 0.28 -> 0.3
+  # terminationHeight: 0.06
+  # actionsCost: -0.1
   energyCost: 0.05
   dofVelocityScale: 0.2
   contactForceScale: 0.1
   jointsAtLimitCost: 0.1
-  deathCost: -2
+  # deathCost: -2
 
   plane:
     staticFriction: 0.3
@@ -68,7 +77,7 @@ sim:
     contact_collection: 0 # 0: CC_NEVER (don't collect contact info), 1: CC_LAST_SUBSTEP (collect only contacts on last substep), 2: CC_ALL_SUBSTEPS (broken - do not use!)
 
 task:
-  randomize: True
+  randomize: False
   randomization_params:
     # specify which attributes to randomize for each actor type and property
     frequency: 720   # Define how many environment steps between generating new randomizations
