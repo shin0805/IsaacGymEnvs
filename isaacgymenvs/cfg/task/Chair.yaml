@@ -17,7 +17,7 @@ env:
 
   # reward parameters
   headingWeight: 0.5
-  upWeight: 5
+  upWeight: 10
 
   # cost parameters
   actionsCost: 0.01
