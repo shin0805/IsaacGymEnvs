@@ -24,9 +24,9 @@ _doxygen
 /isaacgymenvs/balance_bot.xml
 /isaacgymenvs/quadcopter.xml
 /isaacgymenvs/ingenuity.xml
-logs*
 runs/
 nn/
+logs*
 .idea
 outputs/
 *.hydra*

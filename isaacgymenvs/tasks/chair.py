@@ -26,6 +26,7 @@ class Chair(VecTask):
         self.contact_force_scale = self.cfg["env"]["contactForceScale"]
         self.power_scale = self.cfg["env"]["powerScale"] # 1.0
         self.heading_weight = self.cfg["env"]["headingWeight"]
+        self.up_heading_weight = self.cfg["env"]["upHeadingWeight"]
         self.up_weight = self.cfg["env"]["upWeight"]
         self.tilt_weight = self.cfg["env"]["tiltWeight"]
         self.move_forward_weight = self.cfg["env"]["moveForwardWeight"]
@@ -217,6 +218,7 @@ class Chair(VecTask):
             self.actions,
             self.up_weight,
             self.heading_weight,
+            self.up_heading_weight,
             self.tilt_weight,
             self.move_forward_weight,
             self.height_weight,
@@ -333,6 +335,7 @@ def compute_chair_reward(
     actions,
     up_weight,
     heading_weight,
+    up_heading_weight,
     tilt_weight,
     move_forward_weight,
     height_weight,
@@ -353,12 +356,12 @@ def compute_chair_reward(
     max_episode_length,
     numRotationHis,
     dummy_obs_buf):
-    # type: (Tensor, Tensor, Tensor, Tensor, float, float, float, float, float, float, float, float, Tensor, Tensor, Tensor, Tensor, Tensor, float, float, float, float, float, float, float, int, Tensor) -> Tuple[Tensor, Tensor]
+    # type: (Tensor, Tensor, Tensor, Tensor, float, float, float, float, float, float, float, float, float, Tensor, Tensor, Tensor, Tensor, Tensor, float, float, float, float, float, float, float, int, Tensor) -> Tuple[Tensor, Tensor]
 
     # print(obs_buf[0, :])
     # cost from tilt
-    # zero_rot = torch.zeros_like(obs_buf[:, 0:4])
-    # zero_rot[:, 3] = 1.0
+    zero_rot = torch.zeros_like(obs_buf[:, 0:4])
+    zero_rot[:, 3] = 1.0
     # tilt_cost = torch.norm(obs_buf[:, 0:4] - zero_rot, dim=1) * tilt_weight
     
     # reward from direction headed
@@ -369,11 +372,18 @@ def compute_chair_reward(
     up_reward = torch.zeros_like(heading_reward)
     up_reward = torch.where(dummy_obs_buf[:, 3] > 0.93, up_reward + up_weight, up_reward)
 
+    # reward from direction headed and aligning up axis of chair and environment
+    # up_heading_weight_tensor = torch.ones_like(dummy_obs_buf[:, 4]) * up_heading_weight
+    # up_heading_reward = torch.where(dummy_obs_buf[:, 3] * dummy_obs_buf[:, 4] > 0.7, up_heading_weight_tensor, up_heading_weight * dummy_obs_buf[:, 3] * dummy_obs_buf[:, 4] / 0.7)
+
+    # up_weight_tensor = torch.ones_like(dummy_obs_buf[:, 3]) * up_weight
+    # up_reward = torch.where(dummy_obs_buf[:, 3] > 0.93, up_weight_tensor, up_weight * dummy_obs_buf[:, 3] / 0.93)
+
     # reward from move forward
     # move_forward_reward = torso_vel[:, 0] * move_forward_weight
 
     # reward from move height
-    height_reward = torso_pos[:, 2] * height_weight
+    height_reward = torso_pos[:, 2] * dummy_obs_buf[:, 3] * height_weight
     # height_reward = torso_pos[:, 2] / (1000 * torch.norm(obs_buf[:, 0:4] - zero_rot, dim=1) + 1) * 1000 * height_weight
 
     # energy penalty for movement
@@ -384,12 +394,17 @@ def compute_chair_reward(
 
     # reward for duration of being alive
     alive_reward = torch.ones_like(potentials) * alive_weight
-    progress_reward = (potentials - prev_potentials) * progress_weight
+
+    # progress_reward = (potentials - prev_potentials) * dummy_obs_buf[:, 3] * progress_weight
+    progress_reward = torch.zeros_like(heading_reward)
+    progress_reward = torch.where((dummy_obs_buf[:, 3] > 0.93) & (torso_pos[:, 2] > 0.075), progress_reward + (potentials - prev_potentials) * progress_weight, progress_reward)
+    # print(torso_pos[0, 2])
+    # print(dummy_obs_buf[0, 3])
 
     # omega_reward = torch.norm(omega[:, 0:3], dim=1) * torch.norm(obs_buf[:, 0:4] - zero_rot, dim=1) ** 2 * omega_weight
 
     # total_reward = progress_reward + move_forward_reward + height_reward + alive_reward - tilt_cost - actions_cost + omega_reward
-    total_reward = progress_reward + alive_reward + up_reward + heading_reward
+    total_reward = progress_reward + alive_reward + up_reward + heading_reward + height_reward
     # print(f"{tilt_cost[0].item()} , {height_reward[0].item()}, {total_reward[0].item()}")
 
     # adjust reward for fallen agents
@@ -444,7 +459,7 @@ def compute_chair_observations(obs_buf, root_states, targets, potentials, action
     rotation_history = rotation_history[:, :-1, :]
 
     obs = torch.cat((rotation_history.view(rotation_history.size()[0], -1), action_history.view(action_history.size()[0], -1)), dim=-1)
+    # obs = torch.cat((yaw, roll, angle_to_target, up_proj.unsqueeze(-1), heading_proj.unsqueeze(-1), actions), dim=-1)
     dummy_obs = torch.cat((yaw, roll, angle_to_target, up_proj.unsqueeze(-1), heading_proj.unsqueeze(-1), actions), dim=-1)
-
 
     return obs, potentials, prev_potentials_new, action_history, rotation_history, torso_position, velocity, ang_velocity, dummy_obs
