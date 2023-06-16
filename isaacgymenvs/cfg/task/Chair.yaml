@@ -10,33 +10,36 @@ env:
   episodeLength: 350
   enableDebugVis: False
 
-  clipActions: 1.0
+  # clipActions: 1.0
 
   powerScale: 1.0
   controlFrequencyInv: 3 # 20 Hz
 
   # reward parameters
   headingWeight: 0.5
-  upWeight: 0 # 50
-  upHeadingWeight: 30
+  upHeadingWeight: 0
 
   # cost parameters
   actionsCost: 0.01
   deathCost: -1.0
-  terminationHeight: -1.06
+  terminationHeight: -1.03
 
   # reward parameters
   omegaWeight: 0
   # headingWeight: 5 # 0.5
   moveForwardWeight: 5 # 5
-  heightWeight: 5 # 0.5 -> 5
   aliveWeight: 0 # 3.0 -> 20
-  progressWeight: 100
+
+  simpleProgressWeight: 0
+  desirableProgressWeight: 1000
+  upWeight: 50 # 50
+  heightWeight: 100 # 0.5 -> 5
+
   # upWeight: 1 # 0.5
 
   # cost parameters
   tiltWeight: 0
-  terminationTilt: 0.7 # 0.4 -> 0.28 -> 0.3
+  terminationTilt: 1.5 # 0.4 -> 0.28 -> 0.3
   # terminationHeight: 0.06
   # actionsCost: -0.1
   energyCost: 0.05
