@@ -33,7 +33,7 @@ env:
   simpleProgressWeight: 50
   desirableProgressWeight: 0
   upWeight: 5 # 50
-  heightWeight: 5 # 0.5 -> 5
+  heightWeight: 20 # 0.5 -> 5
 
   # upWeight: 1 # 0.5
 
@@ -49,8 +49,8 @@ env:
   # deathCost: -2
 
   plane:
-    staticFriction: 0.3
-    dynamicFriction: 0.3
+    staticFriction: 0.15
+    dynamicFriction: 0.15
     restitution: 0.0
 
   asset:
