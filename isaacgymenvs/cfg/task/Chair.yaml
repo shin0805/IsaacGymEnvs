@@ -31,9 +31,9 @@ env:
   aliveWeight: 1.0 # 3.0 -> 20
 
   simpleProgressWeight: 50
-  desirableProgressWeight: 500
-  upWeight: 50 # 50
-  heightWeight: 15 # 0.5 -> 5
+  desirableProgressWeight: 0
+  upWeight: 5 # 50
+  heightWeight: 5 # 0.5 -> 5
 
   # upWeight: 1 # 0.5
 
@@ -45,7 +45,7 @@ env:
   energyCost: 0.05
   dofVelocityScale: 0.2
   contactForceScale: 0.1
-  jointsAtLimitCost: 1
+  jointsAtLimitCost: 5
   # deathCost: -2
 
   plane:
