@@ -20,32 +20,32 @@ env:
   upHeadingWeight: 0
 
   # cost parameters
-  actionsCost: 0.01
+  actionsCost: 0.1
   deathCost: -1.0
-  terminationHeight: -1.03
+  terminationHeight: ${if:${...test}, -1.0, 0.03}
 
   # reward parameters
   omegaWeight: 0
   # headingWeight: 5 # 0.5
   moveForwardWeight: 5 # 5
-  aliveWeight: 0 # 3.0 -> 20
+  aliveWeight: 1.0 # 3.0 -> 20
 
-  simpleProgressWeight: 0
-  desirableProgressWeight: 1000
+  simpleProgressWeight: 50
+  desirableProgressWeight: 500
   upWeight: 50 # 50
-  heightWeight: 100 # 0.5 -> 5
+  heightWeight: 15 # 0.5 -> 5
 
   # upWeight: 1 # 0.5
 
   # cost parameters
   tiltWeight: 0
-  terminationTilt: 1.5 # 0.4 -> 0.28 -> 0.3
+  terminationTilt: ${if:${...test}, 2, 0.4} # 0.4 -> 0.28 -> 0.3
   # terminationHeight: 0.06
   # actionsCost: -0.1
   energyCost: 0.05
   dofVelocityScale: 0.2
   contactForceScale: 0.1
-  jointsAtLimitCost: 0.1
+  jointsAtLimitCost: 1
   # deathCost: -2
 
   plane:

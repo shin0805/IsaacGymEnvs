@@ -405,7 +405,7 @@ def compute_chair_reward(
     # reward from move height
     # height_reward = torso_pos[:, 2] * dummy_obs_buf[:, 3] * height_weight
     height_reward = torso_pos[:, 2] * height_weight
-    height_reward = up_weight * torch.min(torch.ones_like(heading_reward), torso_pos[:, 2] / 0.07)
+    height_reward = up_weight * torch.min(torch.ones_like(heading_reward), torso_pos[:, 2] / 0.08)
     # height_reward = torso_pos[:, 2] / (1000 * torch.norm(obs_buf[:, 0:4] - zero_rot, dim=1) + 1) * 1000 * height_weight
 
     # energy penalty for movement
@@ -425,7 +425,7 @@ def compute_chair_reward(
     # desirable_progress_reward = torch.zeros_like(heading_reward)
     # desirable_progress_reward = torch.where((dummy_obs_buf[:, 3] > 0.93) & (torso_pos[:, 2] > 0.055), desirable_progress_weight + (potentials - prev_potentials) * desirable_progress_weight, desirable_progress_reward)
     desirable_progress_reward = torch.min(torch.ones_like(heading_reward), torch.exp(10 * (dummy_obs_buf[:, 3] / 0.93 - 1))) * \
-                                torch.min(torch.ones_like(heading_reward), torch.exp(10 * (torso_pos[:, 2] / 0.07 - 1))) * \
+                                torch.min(torch.ones_like(heading_reward), torch.exp(10 * (torso_pos[:, 2] / 0.08 - 1))) * \
                                 desirable_progress_weight * (potentials - prev_potentials)
     # print(torso_pos[0, 2])
     # print(dummy_obs_buf[0, 3])
@@ -438,15 +438,15 @@ def compute_chair_reward(
     # print(f"{tilt_cost[0].item()} , {height_reward[0].item()}, {total_reward[0].item()}")
 
     # adjust reward for fallen agents
-    # total_reward = torch.where(torch.norm(obs_buf[:, 0:4] - zero_rot, dim=1) > termination_tilt, torch.ones_like(total_reward) * death_cost, total_reward)
-    # total_reward = torch.where(torso_pos[:, 2] < termination_height, torch.ones_like(total_reward) * death_cost, total_reward)
+    total_reward = torch.where(torch.norm(obs_buf[:, 0:4] - zero_rot, dim=1) > termination_tilt, torch.ones_like(total_reward) * death_cost, total_reward)
+    total_reward = torch.where(torso_pos[:, 2] < termination_height, torch.ones_like(total_reward) * death_cost, total_reward)
 
     # reset agents
-    # reset = torch.where(torch.norm(obs_buf[:, 0:4] - zero_rot, dim=1) > termination_tilt, torch.ones_like(reset_buf), reset_buf) 
-    # reset = torch.where(torso_pos[:, 2] < termination_height, torch.ones_like(reset_buf), reset)
-    # reset = torch.where(progress_buf >= max_episode_length - 1, torch.ones_like(reset_buf), reset)
+    reset = torch.where(torch.norm(obs_buf[:, 0:4] - zero_rot, dim=1) > termination_tilt, torch.ones_like(reset_buf), reset_buf) 
+    reset = torch.where(torso_pos[:, 2] < termination_height, torch.ones_like(reset_buf), reset)
+    reset = torch.where(progress_buf >= max_episode_length - 1, torch.ones_like(reset_buf), reset)
     # print(torso_pos[:, 2][0])
-    reset = torch.where(progress_buf >= max_episode_length - 1, torch.ones_like(reset_buf), reset_buf)
+    # reset = torch.where(progress_buf >= max_episode_length - 1, torch.ones_like(reset_buf), reset_buf)
 
     return total_reward, reset, rewards
 
