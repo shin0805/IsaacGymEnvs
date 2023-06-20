@@ -39,7 +39,7 @@ env:
 
   # cost parameters
   tiltWeight: 0
-  terminationTilt: ${if:${...test}, 2, 0.4} # 0.4 -> 0.28 -> 0.3
+  terminationTilt: ${if:${...test}, 2, 0.5} # 0.4 -> 0.28 -> 0.3
   # terminationHeight: 0.06
   # actionsCost: -0.1
   energyCost: 0.05
@@ -49,8 +49,8 @@ env:
   # deathCost: -2
 
   plane:
-    staticFriction: 0.15
-    dynamicFriction: 0.15
+    staticFriction: 0.3
+    dynamicFriction: 0.3
     restitution: 0.0
 
   asset:
