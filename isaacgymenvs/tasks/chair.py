@@ -49,8 +49,8 @@ class Chair(VecTask):
         self.plane_restitution = self.cfg["env"]["plane"]["restitution"]
 
         self.cfg["env"]["numActions"] = 6 
-        self.cfg["env"]["numActionHis"] = 7
-        self.cfg["env"]["numRotationHis"] = 7
+        self.cfg["env"]["numActionHis"] = 2
+        self.cfg["env"]["numRotationHis"] = 2
 
         self.cfg["env"]["numObservations"] = 4 * self.cfg["env"]["numRotationHis"] + self.cfg["env"]["numActions"] * self.cfg["env"]["numActionHis"]
         # self.cfg["env"]["numObservations"] = 9
@@ -103,6 +103,7 @@ class Chair(VecTask):
         self.potentials = to_torch([-1000./self.dt], device=self.device).repeat(self.num_envs)
         self.prev_potentials = self.potentials.clone()
         self.torso_pos = to_torch([0, 0, 0], device=self.device).repeat(self.num_envs)
+        self.torso_rot = to_torch([0, 0, 0, 1], device=self.device).repeat(self.num_envs)
         self.torso_vel = to_torch([0, 0, 0], device=self.device).repeat(self.num_envs)
         self.omega = to_torch([0, 0, 0], device=self.device).repeat(self.num_envs)
         # self.action_history = to_torch([1, 1, 1, 1, 1, 1], device=self.device).repeat(self.num_envs)
@@ -239,6 +240,7 @@ class Chair(VecTask):
             self.potentials,
             self.prev_potentials,
             self.torso_pos,
+            self.torso_rot,
             self.torso_vel,
             self.omega,
             self.actions_cost_scale,
@@ -266,7 +268,7 @@ class Chair(VecTask):
         #print("Feet forces and torques: ", self.vec_sensor_tensor[0, :])
         # print(self.vec_sensor_tensor.shape)
 
-        self.obs_buf[:], self.potentials[:], self.prev_potentials[:], self.action_history, self.rotation_history, self.torso_pos, self.torso_vel, self.omega, self.dummy_obs_buf = compute_chair_observations(
+        self.obs_buf[:], self.potentials[:], self.prev_potentials[:], self.action_history, self.rotation_history, self.torso_pos, self.torso_rot, self.torso_vel, self.omega, self.dummy_obs_buf = compute_chair_observations(
             self.obs_buf, self.root_states, self.targets, self.potentials, self.action_history, self.rotation_history,
             self.inv_start_rot, self.dof_pos, self.dof_vel,
             self.dof_limits_lower, self.dof_limits_upper, self.dof_vel_scale,
@@ -364,6 +366,7 @@ def compute_chair_reward(
     potentials,
     prev_potentials,
     torso_pos,
+    torso_rot,
     torso_vel,
     omega,
     actions_cost_scale,
@@ -375,7 +378,7 @@ def compute_chair_reward(
     max_episode_length,
     numRotationHis,
     dummy_obs_buf):
-    # type: (Tensor, Tensor, Tensor, Tensor, float, float, float, float, float, float, float, float, float, float, Tensor, Tensor, Tensor, Tensor, Tensor, float, float, float, float, float, float, float, int, Tensor) -> Tuple[Tensor, Tensor, List[Tensor]]
+    # type: (Tensor, Tensor, Tensor, Tensor, float, float, float, float, float, float, float, float, float, float, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, float, float, float, float, float, float, float, int, Tensor) -> Tuple[Tensor, Tensor, List[Tensor]]
 
     # print(obs_buf[0, :])
     # cost from tilt
@@ -437,13 +440,41 @@ def compute_chair_reward(
     rewards = [simple_progress_reward, desirable_progress_reward, alive_reward, up_reward, heading_reward, height_reward, dof_at_limit_cost, actions_cost]
     # print(f"{tilt_cost[0].item()} , {height_reward[0].item()}, {total_reward[0].item()}")
 
+    # edge_pos
+    x_ofst = 0.095
+    y_ofst = 0.0785
+    lf = torch.zeros_like(torso_pos)
+    lf[:, 0] += x_ofst
+    lf[:, 1] += y_ofst
+    lf_pos = torso_pos + lf
+    lb = torch.zeros_like(torso_pos)
+    lb[:, 0] -= x_ofst
+    lb[:, 1] += y_ofst
+    lb_pos = torso_pos + lb
+    rb = torch.zeros_like(torso_pos)
+    rb[:, 0] -= x_ofst
+    rb[:, 1] -= y_ofst
+    rb_pos = torso_pos + rb
+    rf = torch.zeros_like(torso_pos)
+    rf[:, 0] += x_ofst
+    rf[:, 1] -= y_ofst
+    rf_pos = torso_pos + rf
+    quat = torch.zeros_like(torso_rot)
+    quat[:, 0] = torso_rot[:, 3]
+    quat[:, 1] = torso_rot[:, 0]
+    quat[:, 2] = torso_rot[:, 1]
+    quat[:, 3] = torso_rot[:, 2]
+    edge_pos = torch.matmul(quaternion_to_matrix(quat), torch.stack((lf_pos, lb_pos, rb_pos, rf_pos), dim=2))
+
     # adjust reward for fallen agents
-    total_reward = torch.where(torch.norm(obs_buf[:, 0:4] - zero_rot, dim=1) > termination_tilt, torch.ones_like(total_reward) * death_cost, total_reward)
-    total_reward = torch.where(torso_pos[:, 2] < termination_height, torch.ones_like(total_reward) * death_cost, total_reward)
+    # total_reward = torch.where(torch.norm(obs_buf[:, 0:4] - zero_rot, dim=1) > termination_tilt, torch.ones_like(total_reward) * death_cost, total_reward)
+    # total_reward = torch.where(torso_pos[:, 2] < termination_height, torch.ones_like(total_reward) * death_cost, total_reward)
+    total_reward = torch.where(torch.min(edge_pos[:, 2, :], dim=1).values <= 0.01, torch.ones_like(total_reward) * death_cost, total_reward)
 
     # reset agents
-    reset = torch.where(torch.norm(obs_buf[:, 0:4] - zero_rot, dim=1) > termination_tilt, torch.ones_like(reset_buf), reset_buf) 
-    reset = torch.where(torso_pos[:, 2] < termination_height, torch.ones_like(reset_buf), reset)
+    reset = torch.where(torch.min(edge_pos[:, 2, :], dim=1).values <= 0.01, torch.ones_like(reset_buf), reset_buf)
+    # reset = torch.where(torch.norm(obs_buf[:, 0:4] - zero_rot, dim=1) > termination_tilt, torch.ones_like(reset_buf), reset_buf) 
+    # reset = torch.where(torso_pos[:, 2] < termination_height, torch.ones_like(reset_buf), reset)
     reset = torch.where(progress_buf >= max_episode_length - 1, torch.ones_like(reset_buf), reset)
     # print(torso_pos[:, 2][0])
     # reset = torch.where(progress_buf >= max_episode_length - 1, torch.ones_like(reset_buf), reset_buf)
@@ -457,7 +488,7 @@ def compute_chair_observations(obs_buf, root_states, targets, potentials, action
                              dof_limits_lower, dof_limits_upper, dof_vel_scale,
                              actions, dt,
                              basis_vec0, basis_vec1, up_axis_idx):
-    # type: (Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, float, Tensor, float, Tensor, Tensor, int) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]
+    # type: (Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, float, Tensor, float, Tensor, Tensor, int) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]
 
     torso_position = root_states[:, 0:3]
     torso_rotation = root_states[:, 3:7]
@@ -494,4 +525,4 @@ def compute_chair_observations(obs_buf, root_states, targets, potentials, action
     # obs = torch.cat((yaw, roll, angle_to_target, up_proj.unsqueeze(-1), heading_proj.unsqueeze(-1), actions), dim=-1)
     dummy_obs = torch.cat((yaw, roll, angle_to_target, up_proj.unsqueeze(-1), heading_proj.unsqueeze(-1), dof_pos_scaled, actions), dim=-1)
 
-    return obs, potentials, prev_potentials_new, action_history, rotation_history, torso_position, velocity, ang_velocity, dummy_obs
+    return obs, potentials, prev_potentials_new, action_history, rotation_history, torso_position, torso_rotation, velocity, ang_velocity, dummy_obs

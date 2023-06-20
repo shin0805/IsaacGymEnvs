@@ -26,8 +26,11 @@ _doxygen
 /isaacgymenvs/ingenuity.xml
 runs/
 nn/
+eval_summaries/
+rewards/
 logs*
 .idea
 outputs/
 *.hydra*
 /isaacgymenvs/wandb
+
