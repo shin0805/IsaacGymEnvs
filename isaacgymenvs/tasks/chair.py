@@ -49,8 +49,8 @@ class Chair(VecTask):
         self.plane_restitution = self.cfg["env"]["plane"]["restitution"]
 
         self.cfg["env"]["numActions"] = 6 
-        self.cfg["env"]["numActionHis"] = 7
-        self.cfg["env"]["numRotationHis"] = 7
+        self.cfg["env"]["numActionHis"] = 4
+        self.cfg["env"]["numRotationHis"] = 4
 
         self.cfg["env"]["numObservations"] = 4 * self.cfg["env"]["numRotationHis"] + self.cfg["env"]["numActions"] * self.cfg["env"]["numActionHis"]
         # self.cfg["env"]["numObservations"] = 9
