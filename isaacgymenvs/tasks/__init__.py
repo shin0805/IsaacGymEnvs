@@ -27,6 +27,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from .chair import Chair
+from .stand import Stand
 from .ant import Ant
 from .anymal import Anymal
 from .anymal_terrain import AnymalTerrain
@@ -55,6 +56,7 @@ isaacgym_task_map = {
     "AllegroHandManualDR": AllegroHandDextremeManualDR,
     "AllegroHandADR": AllegroHandDextremeADR,
     "Chair": Chair,
+    "Stand": Stand,
     "Ant": Ant,
     "Anymal": Anymal,
     "AnymalTerrain": AnymalTerrain,
