@@ -7,7 +7,7 @@ physics_engine: ${..physics_engine}
 env:
   numEnvs: ${resolve_default:4096,${...num_envs}}
   envSpacing: 1
-  episodeLength: 350
+  episodeLength: 1000
   enableDebugVis: False
 
   # clipActions: 1.0

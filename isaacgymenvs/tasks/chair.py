@@ -169,10 +169,10 @@ class Chair(VecTask):
 
         start_pose = gymapi.Transform()
         start_pose.p = gymapi.Vec3(*get_axis_params(0, self.up_axis_idx))
-        # start_pose.r.x = 1.4142 / 2
-        # start_pose.r.y = 0
-        # start_pose.r.z = 0
-        # start_pose.r.w = 1.4142 / 2
+        start_pose.r.x = 1.4142 / 2
+        start_pose.r.y = 0
+        start_pose.r.z = 0
+        start_pose.r.w = 1.4142 / 2
 
         self.start_rotation = torch.tensor([start_pose.r.x, start_pose.r.y, start_pose.r.z, start_pose.r.w], device=self.device)
 
@@ -425,19 +425,19 @@ def compute_chair_reward(
 
     # progress_reward = (potentials - prev_potentials) * dummy_obs_buf[:, 3] * progress_weight
     # simple_progress_reward = torch.zeros_like(heading_reward)
-    simple_progress_reward = (potentials - prev_potentials) * simple_progress_weight
+    # simple_progress_reward = (potentials - prev_potentials) * simple_progress_weight
     # desirable_progress_reward = torch.zeros_like(heading_reward)
     # desirable_progress_reward = torch.where((dummy_obs_buf[:, 3] > 0.93) & (torso_pos[:, 2] > 0.055), desirable_progress_weight + (potentials - prev_potentials) * desirable_progress_weight, desirable_progress_reward)
-    desirable_progress_reward = torch.min(torch.ones_like(heading_reward), torch.exp(10 * (dummy_obs_buf[:, 3] / 0.93 - 1))) * \
-                                torch.min(torch.ones_like(heading_reward), torch.exp(10 * (torso_pos[:, 2] / 0.08 - 1))) * \
-                                desirable_progress_weight * (potentials - prev_potentials)
+    # desirable_progress_reward = torch.min(torch.ones_like(heading_reward), torch.exp(10 * (dummy_obs_buf[:, 3] / 0.93 - 1))) * \
+    #                             torch.min(torch.ones_like(heading_reward), torch.exp(10 * (torso_pos[:, 2] / 0.08 - 1))) * \
+    #                             desirable_progress_weight * (potentials - prev_potentials)
     # print(torso_pos[0, 2])
     # print(dummy_obs_buf[0, 3])
 
     # omega_reward = torch.norm(omega[:, 0:3], dim=1) * torch.norm(obs_buf[:, 0:4] - zero_rot, dim=1) ** 2 * omega_weight
 
     # total_reward = progress_reward + move_forward_reward + height_reward + alive_reward - tilt_cost - actions_cost + omega_reward
-    total_reward = simple_progress_reward + desirable_progress_reward + alive_reward + up_reward + heading_reward + height_reward - dof_at_limit_cost - actions_cost
+    total_reward = alive_reward + up_reward + heading_reward + height_reward - dof_at_limit_cost - actions_cost
     rewards = [simple_progress_reward, desirable_progress_reward, alive_reward, up_reward, heading_reward, height_reward, dof_at_limit_cost, actions_cost]
     # print(f"{tilt_cost[0].item()} , {height_reward[0].item()}, {total_reward[0].item()}")
 
