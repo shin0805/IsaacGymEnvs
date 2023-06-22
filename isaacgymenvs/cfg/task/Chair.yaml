@@ -20,9 +20,9 @@ env:
   upHeadingWeight: 0
 
   # cost parameters
-  actionsCost: 0.1
+  actionsCost: 2
   deathCost: -1.0
-  terminationHeight: ${if:${...test}, -1.0, 0.03}
+  terminationHeight: ${if:${...test}, -1.0, 0.02}
 
   # reward parameters
   omegaWeight: 0
@@ -30,7 +30,7 @@ env:
   moveForwardWeight: 5 # 5
   aliveWeight: 1.0 # 3.0 -> 20
 
-  simpleProgressWeight: 50
+  simpleProgressWeight: 30
   desirableProgressWeight: 0
   upWeight: 5 # 50
   heightWeight: 20 # 0.5 -> 5
@@ -39,7 +39,7 @@ env:
 
   # cost parameters
   tiltWeight: 0
-  terminationTilt: ${if:${...test}, 2, 0.5} # 0.4 -> 0.28 -> 0.3
+  terminationTilt: ${if:${...test}, 2, 0.7} # 0.4 -> 0.28 -> 0.3
   # terminationHeight: 0.06
   # actionsCost: -0.1
   energyCost: 0.05
@@ -49,8 +49,8 @@ env:
   # deathCost: -2
 
   plane:
-    staticFriction: 0.3
-    dynamicFriction: 0.3
+    staticFriction: 0.2
+    dynamicFriction: 0.15
     restitution: 0.0
 
   asset:

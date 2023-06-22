@@ -87,6 +87,7 @@ class Chair(VecTask):
         zero_tensor = torch.tensor([0.0], device=self.device)
         self.initial_dof_pos = torch.where(self.dof_limits_lower > zero_tensor, self.dof_limits_lower,
                                            torch.where(self.dof_limits_upper < zero_tensor, self.dof_limits_upper, self.initial_dof_pos))
+        # self.initial_dof_pos = to_torch([-0.1745, 0, -0.1745, 0, -0.1745, 0], device=self.device).repeat((self.num_envs, 1))
         self.initial_dof_vel = torch.zeros_like(self.dof_vel, device=self.device, dtype=torch.float)
 
         # initialize some data used later on
