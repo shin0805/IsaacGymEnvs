@@ -41,6 +41,7 @@ class Chair(VecTask):
         self.joints_at_limit_cost_scale = self.cfg["env"]["jointsAtLimitCost"]
         self.death_cost = self.cfg["env"]["deathCost"]
         self.termination_height = self.cfg["env"]["terminationHeight"]
+        self.termination_edge = self.cfg["env"]["terminationEdge"]
         self.termination_tilt = self.cfg["env"]["terminationTilt"]
 
         self.debug_viz = self.cfg["env"]["enableDebugVis"]
@@ -248,6 +249,7 @@ class Chair(VecTask):
             self.energy_cost_scale,
             self.joints_at_limit_cost_scale,
             self.termination_height,
+            self.termination_edge,
             self.termination_tilt,
             self.death_cost,
             self.max_episode_length,
@@ -374,12 +376,13 @@ def compute_chair_reward(
     energy_cost_scale,
     joints_at_limit_cost_scale,
     termination_height,
+    termination_edge,
     termination_tilt,
     death_cost,
     max_episode_length,
     numRotationHis,
     dummy_obs_buf):
-    # type: (Tensor, Tensor, Tensor, Tensor, float, float, float, float, float, float, float, float, float, float, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, float, float, float, float, float, float, float, int, Tensor) -> Tuple[Tensor, Tensor, List[Tensor]]
+    # type: (Tensor, Tensor, Tensor, Tensor, float, float, float, float, float, float, float, float, float, float, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, float, float, float, float, float, float, float, float, int, Tensor) -> Tuple[Tensor, Tensor, List[Tensor]]
 
     # print(obs_buf[0, :])
     # cost from tilt
@@ -468,12 +471,12 @@ def compute_chair_reward(
     edge_pos = torch.matmul(quaternion_to_matrix(quat), torch.stack((lf_pos, lb_pos, rb_pos, rf_pos), dim=2))
 
     # adjust reward for fallen agents
-    total_reward = torch.where(torch.min(edge_pos[:, 2, :], dim=1).values <= 0.01, torch.ones_like(total_reward) * death_cost, total_reward)
+    total_reward = torch.where(torch.min(edge_pos[:, 2, :], dim=1).values <= termination_edge, torch.ones_like(total_reward) * death_cost, total_reward)
     total_reward = torch.where(torch.norm(obs_buf[:, 0:4] - zero_rot, dim=1) > termination_tilt, torch.ones_like(total_reward) * death_cost, total_reward)
     total_reward = torch.where(torso_pos[:, 2] < termination_height, torch.ones_like(total_reward) * death_cost, total_reward)
 
     # reset agents
-    reset = torch.where(torch.min(edge_pos[:, 2, :], dim=1).values <= 0.01, torch.ones_like(reset_buf), reset_buf)
+    reset = torch.where(torch.min(edge_pos[:, 2, :], dim=1).values <= termination_edge, torch.ones_like(reset_buf), reset_buf)
     reset = torch.where(torch.norm(obs_buf[:, 0:4] - zero_rot, dim=1) > termination_tilt, torch.ones_like(reset_buf), reset) 
     reset = torch.where(torso_pos[:, 2] < termination_height, torch.ones_like(reset_buf), reset)
     reset = torch.where(progress_buf >= max_episode_length - 1, torch.ones_like(reset_buf), reset)
