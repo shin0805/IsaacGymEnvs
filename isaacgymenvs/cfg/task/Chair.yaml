@@ -16,13 +16,13 @@ env:
   controlFrequencyInv: 1 # 10 Hz
 
   # reward parameters
-  headingWeight: 0.5
+  headingWeight: 2 # 0.5
   upHeadingWeight: 0
 
   # cost parameters
   actionsCost: 2
   deathCost: -1.0
-  terminationHeight: ${if:${...test}, -1.0, 0.01}
+  terminationHeight: ${if:${...test}, -1.0, 0.06}
   terminationEdge: ${if:${...test}, -1.0, 0.02}
 
   # reward parameters
@@ -46,12 +46,12 @@ env:
   energyCost: 0.05
   dofVelocityScale: 0.2
   contactForceScale: 0.1
-  jointsAtLimitCost: 5
+  jointsAtLimitCost: 2
   # deathCost: -2
 
   plane:
-    staticFriction: 0.05 # 0.2
-    dynamicFriction: 0.03 # 0.15
+    staticFriction: 0.14766 # 0.2 0.005
+    dynamicFriction: 0.12632 # 0.15 0.03
     restitution: 0.0
 
   asset:

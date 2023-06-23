@@ -205,6 +205,11 @@ class Chair(VecTask):
                 self.gym.set_rigid_body_color(
                     env_ptr, chair_handle, j, gymapi.MESH_VISUAL, gymapi.Vec3(0.97, 0.38, 0.06))
 
+            dof_props = self.gym.get_actor_dof_properties(env_ptr, chair_handle)
+            # dof_props['stiffness'][:] = 0.01
+            # dof_props['damping'][:] = 0.01
+            self.gym.set_actor_dof_properties(env_ptr, chair_handle, dof_props)
+
             self.envs.append(env_ptr)
             self.chair_handles.append(chair_handle)
 
