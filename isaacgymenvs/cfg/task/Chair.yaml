@@ -21,6 +21,7 @@ env:
 
   # cost parameters
   actionsCost: 2
+  velCost: 2
   deathCost: -1.0
   terminationHeight: ${if:${...test}, -1.0, 0.06}
   terminationEdge: ${if:${...test}, -1.0, 0.02}
@@ -52,6 +53,8 @@ env:
   plane:
     staticFriction: 0.14766 # 0.2 0.005
     dynamicFriction: 0.12632 # 0.15 0.03
+    # staticFriction: 0.8 # 0.2 0.005
+    # dynamicFriction: 0.5 # 0.15 0.03
     restitution: 0.0
 
   asset:
@@ -82,16 +85,16 @@ sim:
     contact_collection: 0 # 0: CC_NEVER (don't collect contact info), 1: CC_LAST_SUBSTEP (collect only contacts on last substep), 2: CC_ALL_SUBSTEPS (broken - do not use!)
 
 task:
-  randomize: False
+  randomize: True
   randomization_params:
     # specify which attributes to randomize for each actor type and property
-    frequency: 720   # Define how many environment steps between generating new randomizations
+    frequency: 600   # Define how many environment steps between generating new randomizations
     observations:
-      range: [0, .05] # range for the white noise
+      range: [0, .002] # range for the white noise
       operation: "additive"
       distribution: "gaussian"
     actions:
-      range: [0., .05]
+      range: [0., .02]
       operation: "additive"
       distribution: "gaussian"
     actor_params:
@@ -105,13 +108,13 @@ task:
             setup_only: False # Property will only be randomized once before simulation is started. See Domain Randomization Documentation for more info.
         dof_properties:
           damping: 
-            range: [0.01, 2.0]
+            range: [0.01, 1.0]
             operation: "scaling"
-            distribution: "loguniform"
+            distribution: "uniform"
           stiffness:
-            range: [0.01, 2.0]
+            range: [0.01, 1.0]
             operation: "scaling"
-            distribution: "loguniform"
+            distribution: "uniform"
             # schedule: "linear"  # "linear" will scale the current random sample by `min(current num steps, schedule_steps) / schedule_steps`
             # schedule_steps: 30000
           effort:
@@ -135,16 +138,16 @@ task:
           #   operation: "scaling"
           #   distribution: "uniform"
           lower:
-            # range: [0, 0.01]
-            # operation: "additive"
-            # distribution: "gaussian"
-            range: [-0.5, 0.5]
+            range: [0, 0.01]
             operation: "additive"
-            distribution: "uniform"
+            distribution: "gaussian"
+            # range: [-0.5, 0.5]
+            # operation: "additive"
+            # distribution: "uniform"
           upper:
-            # range: [0, 0.01]
-            # operation: "additive"
-            # distribution: "gaussian"
-            range: [-0.5, 0.5]
+            range: [0, 0.01]
             operation: "additive"
-            distribution: "uniform"
+            distribution: "gaussian"
+            # range: [-0.5, 0.5]
+            # operation: "additive"
+            # distribution: "uniform"

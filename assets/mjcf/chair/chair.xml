@@ -46,7 +46,9 @@
     <light directional="false" diffuse=".2 .2 .2" specular="0 0 0" pos="0 0 5" dir="0 0 -1" castshadow="false"/>
     <light mode="targetbodycom" target="chair" directional="false" diffuse=".8 .8 .8" specular="0.3 0.3 0.3" pos="0 0 4.0" dir="0 0 -1"/>
 
+
 		<body name="dummy" pos="0.095 0.0785 0.10365">
+      <site name="imu" pos="0.01 -0.0015 0"/>
 			<freejoint name="root"/>
 			<!--<joint type="free"/>-->
 		  <body name="chair" pos="-0.095 -0.0785 -0.10365">
@@ -118,5 +120,10 @@
   	<motor name="joint6" joint="joint6" ctrllimited="true" ctrlrange="-1.57 1.57" forcelimited="true" forcerange="-.3 .3" gear="1"/>
 		-->
   </actuator>
+
+  <sensor>
+    <accelerometer name="accelerometer" site="imu"/>
+    <gyro name="gyro" site="imu"/> 
+  </sensor>
 
 </mujoco>

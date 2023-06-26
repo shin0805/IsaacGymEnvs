@@ -2,10 +2,13 @@ import numpy as np
 import datetime
 import os
 import torch
+import csv
+# import pandas as pd
 
 from scipy.spatial.transform import Rotation
 from tensorboardX import SummaryWriter
 
+# import gym
 from isaacgym import gymtorch
 from isaacgym import gymapi
 from isaacgym.gymtorch import *
@@ -37,6 +40,7 @@ class Chair(VecTask):
         self.desirable_progress_weight = self.cfg["env"]["desirableProgressWeight"]
         self.omega_weight = self.cfg["env"]["omegaWeight"]
         self.actions_cost_scale = self.cfg["env"]["actionsCost"]
+        self.vel_cost_scale = self.cfg["env"]["velCost"]
         self.energy_cost_scale = self.cfg["env"]["energyCost"]
         self.joints_at_limit_cost_scale = self.cfg["env"]["jointsAtLimitCost"]
         self.death_cost = self.cfg["env"]["deathCost"]
@@ -189,6 +193,7 @@ class Chair(VecTask):
         # for body_idx in extremity_indices:
         #     self.gym.create_asset_force_sensor(chair_asset, body_idx, sensor_pose)
 
+
         self.chair_handles = []
         self.envs = []
         self.dof_limits_lower = []
@@ -206,8 +211,9 @@ class Chair(VecTask):
                     env_ptr, chair_handle, j, gymapi.MESH_VISUAL, gymapi.Vec3(0.97, 0.38, 0.06))
 
             dof_props = self.gym.get_actor_dof_properties(env_ptr, chair_handle)
-            # dof_props['stiffness'][:] = 0.01
-            # dof_props['damping'][:] = 0.01
+            # dof_props['stiffness'][:] = 0.001
+            # dof_props['damping'][:] = 0.001
+            # dof_props['armature'][:] = 0.001
             self.gym.set_actor_dof_properties(env_ptr, chair_handle, dof_props)
 
             self.envs.append(env_ptr)
@@ -228,12 +234,14 @@ class Chair(VecTask):
         for i in range(len(extremity_names)):
             self.extremities_index[i] = self.gym.find_actor_rigid_body_handle(self.envs[0], self.chair_handles[0], extremity_names[i])
 
+
     def compute_reward(self, actions):
         self.rew_buf[:], self.reset_buf[:], rewards= compute_chair_reward(
             self.obs_buf,
             self.reset_buf,
             self.progress_buf,
             self.actions,
+            self.dof_vel,
             self.up_weight,
             self.heading_weight,
             self.up_heading_weight,
@@ -251,6 +259,7 @@ class Chair(VecTask):
             self.torso_vel,
             self.omega,
             self.actions_cost_scale,
+            self.vel_cost_scale,
             self.energy_cost_scale,
             self.joints_at_limit_cost_scale,
             self.termination_height,
@@ -263,8 +272,8 @@ class Chair(VecTask):
         )
 
         self.frame += 1
-        rewards_name = ["simple_progress_reward", "desirable_progress_reward", "alive_reward", "up_reward", "heading_reward", "height_reward", "dof_at_limit_cost", "actions_cost"]
-        if self.frame % 100 == 0: 
+        rewards_name = ["simple_progress_reward", "desirable_progress_reward", "alive_reward", "up_reward", "heading_reward", "height_reward", "dof_at_limit_cost", "actions_cost", "vel_cost"]
+        if self.frame % 10 == 0: 
             for i, name in enumerate(rewards_name):
                 self.eval_summaries.add_scalar("reward/" + name, rewards[i].mean().item(), self.frame)
             self.eval_summaries.add_scalar("reward/total", self.rew_buf.mean().item(), self.frame)
@@ -275,6 +284,20 @@ class Chair(VecTask):
         # self.gym.refresh_force_sensor_tensor(self.sim)
         #print("Feet forces and torques: ", self.vec_sensor_tensor[0, :])
         # print(self.vec_sensor_tensor.shape)
+
+        torso_rotation = self.root_states[:, 3:7]
+        rotation_ = torso_rotation.view(-1, 1, torso_rotation.size()[1])
+        # np.savetxt("rotation.csv", X=rotation_[0, :].cpu().numpy(), delimiter=",")
+        # data = pd.DataFrame(rotation_[0, :].cpu().numpy())
+        # data.to_csv('rotation.csv', mode='a', header=False, index=False)
+        # with open('rotation.csv', 'a') as f:
+        #     writer = csv.writer(f)
+        #     writer.writerow(rotation_[0, :].cpu().numpy())
+
+        # scene = gym.create_scene(self.sim)
+        # imu_data = self.gym.get_sensor(self.envs[0], 0)  # Assuming the IMU sensor has sensor ID 0
+        # print(type(imu_data)) # None
+        # acceleration = imu_data["accel"]
 
         self.obs_buf[:], self.potentials[:], self.prev_potentials[:], self.action_history, self.rotation_history, self.torso_pos, self.torso_rot, self.torso_vel, self.omega, self.dummy_obs_buf = compute_chair_observations(
             self.obs_buf, self.root_states, self.targets, self.potentials, self.action_history, self.rotation_history,
@@ -361,6 +384,7 @@ def compute_chair_reward(
     reset_buf,
     progress_buf,
     actions,
+    dof_vel,
     up_weight,
     heading_weight,
     up_heading_weight,
@@ -378,6 +402,7 @@ def compute_chair_reward(
     torso_vel,
     omega,
     actions_cost_scale,
+    vel_cost_scale,
     energy_cost_scale,
     joints_at_limit_cost_scale,
     termination_height,
@@ -387,7 +412,7 @@ def compute_chair_reward(
     max_episode_length,
     numRotationHis,
     dummy_obs_buf):
-    # type: (Tensor, Tensor, Tensor, Tensor, float, float, float, float, float, float, float, float, float, float, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, float, float, float, float, float, float, float, float, int, Tensor) -> Tuple[Tensor, Tensor, List[Tensor]]
+    # type: (Tensor, Tensor, Tensor, Tensor, Tensor, float, float, float, float, float, float, float, float, float, float, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, float, float, float, float, float, float, float, float, float, int, Tensor) -> Tuple[Tensor, Tensor, List[Tensor]]
 
     # print(obs_buf[0, :])
     # cost from tilt
@@ -424,6 +449,10 @@ def compute_chair_reward(
     # actions_cost = torch.sum(actions ** 2, dim=-1) * actions_cost_scale
     actions_cost = torch.sum((actions - obs_buf[:, 4*numRotationHis+6:4*numRotationHis+12]) ** 2, dim=-1) * actions_cost_scale
 
+    max_vel = 10.472 #rad/s
+    vel_tolerance = 1.0
+    vel_cost = vel_cost_scale * torch.sum((dof_vel/(max_vel - vel_tolerance)) ** 2, dim=-1)
+
     # actions_cost = torch.sum((actions - obs_buf[:, -6:]) ** 2, dim=-1) * actions_cost_scale
     scaled_cost = joints_at_limit_cost_scale * (torch.abs(dummy_obs_buf[:, 5:11]) - 0.98) / 0.02
     dof_at_limit_cost = torch.sum((torch.abs(dummy_obs_buf[:, 5:11]) > 0.98) * scaled_cost, dim=-1)
@@ -445,8 +474,8 @@ def compute_chair_reward(
     # omega_reward = torch.norm(omega[:, 0:3], dim=1) * torch.norm(obs_buf[:, 0:4] - zero_rot, dim=1) ** 2 * omega_weight
 
     # total_reward = progress_reward + move_forward_reward + height_reward + alive_reward - tilt_cost - actions_cost + omega_reward
-    total_reward = simple_progress_reward + desirable_progress_reward + alive_reward + up_reward + heading_reward + height_reward - dof_at_limit_cost - actions_cost
-    rewards = [simple_progress_reward, desirable_progress_reward, alive_reward, up_reward, heading_reward, height_reward, dof_at_limit_cost, actions_cost]
+    total_reward = simple_progress_reward + desirable_progress_reward + alive_reward + up_reward + heading_reward + height_reward - dof_at_limit_cost - actions_cost - vel_cost
+    rewards = [simple_progress_reward, desirable_progress_reward, alive_reward, up_reward, heading_reward, height_reward, dof_at_limit_cost, actions_cost, vel_cost]
     # print(f"{tilt_cost[0].item()} , {height_reward[0].item()}, {total_reward[0].item()}")
 
     # edge_pos
