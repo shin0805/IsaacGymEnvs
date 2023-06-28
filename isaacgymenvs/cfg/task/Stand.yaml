@@ -7,7 +7,7 @@ physics_engine: ${..physics_engine}
 env:
   numEnvs: ${resolve_default:4096,${...num_envs}}
   envSpacing: 1
-  episodeLength: 350
+  episodeLength: 100
   enableDebugVis: False
 
   # clipActions: 1.0
@@ -40,6 +40,7 @@ env:
   # cost parameters
   tiltWeight: 0
   terminationTilt: ${if:${...test}, 2, 0.7} # 0.4 -> 0.28 -> 0.3
+  terminationUpProj: ${if:${...test}, -2, -0.7}
   # terminationHeight: 0.06
   # actionsCost: -0.1
   energyCost: 0.05
@@ -49,8 +50,8 @@ env:
   # deathCost: -2
 
   plane:
-    staticFriction: 0.2
-    dynamicFriction: 0.15
+    staticFriction: 0.14766 # 0.2 0.005
+    dynamicFriction: 0.12632 # 0.15 0.03
     restitution: 0.0
 
   asset:

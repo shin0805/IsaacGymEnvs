@@ -9,6 +9,7 @@ from tensorboardX import SummaryWriter
 from isaacgym import gymtorch
 from isaacgym import gymapi
 from isaacgym.gymtorch import *
+from isaacgym.torch_utils import *
 from isaacgymenvs.utils.torch_jit_utils import *
 from isaacgymenvs.tasks.base.vec_task import VecTask
 
@@ -42,6 +43,7 @@ class Stand(VecTask):
         self.death_cost = self.cfg["env"]["deathCost"]
         self.termination_height = self.cfg["env"]["terminationHeight"]
         self.termination_tilt = self.cfg["env"]["terminationTilt"]
+        self.termination_up_proj = self.cfg["env"]["terminationUpProj"]
 
         self.debug_viz = self.cfg["env"]["enableDebugVis"]
         self.plane_static_friction = self.cfg["env"]["plane"]["staticFriction"]
@@ -58,7 +60,7 @@ class Stand(VecTask):
         super().__init__(config=self.cfg, rl_device=rl_device, sim_device=sim_device, graphics_device_id=graphics_device_id, headless=headless, virtual_screen_capture=virtual_screen_capture, force_render=force_render)
 
         if self.viewer != None:
-            cam_offset = 20 # 20
+            cam_offset = 0 # 20
             cam_pos = gymapi.Vec3(2 + cam_offset, 0.5 + cam_offset, 1.5)
             cam_target = gymapi.Vec3(0.0 + cam_offset, 0.0 + cam_offset, 0.0)
             self.gym.viewer_camera_look_at(self.viewer, None, cam_pos, cam_target)
@@ -94,6 +96,8 @@ class Stand(VecTask):
         self.up_vec = to_torch(get_axis_params(1., self.up_axis_idx), device=self.device).repeat((self.num_envs, 1))
         self.heading_vec = to_torch([1, 0, 0], device=self.device).repeat((self.num_envs, 1))
         self.inv_start_rot = quat_conjugate(self.start_rotation).repeat((self.num_envs, 1))
+        # self.start_rot = self.get_random_quat()
+        # self.inv_start_rot = quat_conjugate(self.start_rot)
 
         self.basis_vec0 = self.heading_vec.clone()
         self.basis_vec1 = self.up_vec.clone()
@@ -193,11 +197,27 @@ class Stand(VecTask):
         self.dof_limits_lower = []
         self.dof_limits_upper = []
 
+        # uvw = torch_rand_float(0, 1.0, (self.num_envs, 3), device=self.device)
+
         for i in range(self.num_envs):
             # create env instance
             env_ptr = self.gym.create_env(
                 self.sim, lower, upper, num_per_row
             )
+
+            # random rotation
+            flag = True
+            while flag: 
+                uvw = torch_rand_float(0, 1.0, (1, 3), device=self.device)
+                start_pose.r.w = torch.sqrt(1.0 - uvw[:, 0]) * (torch.sin(2 * np.pi * uvw[:, 1]))
+                start_pose.r.x = torch.sqrt(1.0 - uvw[:, 0]) * (torch.cos(2 * np.pi * uvw[:, 1]))
+                start_pose.r.y = torch.sqrt(uvw[:, 0]) * (torch.sin(2 * np.pi * uvw[:, 2]))
+                start_pose.r.z = torch.sqrt(uvw[:, 0]) * (torch.cos(2 * np.pi * uvw[:, 2]))
+                rand_quat = torch.tensor([start_pose.r.x, start_pose.r.y, start_pose.r.z, start_pose.r.w], device=self.device).view(1, 4)
+                torso_quat = quat_mul(rand_quat, torch.tensor([0, 0, 0, 1], device=self.device).view(1, 4)).view(1, 4)
+                up_vec_proj = get_basis_vector(torso_quat, to_torch(get_axis_params(1., self.up_axis_idx), device=self.device).view(1, 3))[0, 2]
+                flag = up_vec_proj < self.termination_up_proj # TODO Not reset at initial rotation
+
             chair_handle = self.gym.create_actor(env_ptr, chair_asset, start_pose, "chair", i, 1, 0)
 
             for j in range(self.num_bodies):
@@ -217,10 +237,22 @@ class Stand(VecTask):
                 self.dof_limits_upper.append(dof_prop['upper'][j])
 
         self.dof_limits_lower = to_torch(self.dof_limits_lower, device=self.device)
-        self.dof_limits_upper = to_torch(self.dof_limits_upper, device=self.device)
+        self.dof_limits_upper = to_torch(self.dof_limits_upper, device=self.device) 
 
         for i in range(len(extremity_names)):
             self.extremities_index[i] = self.gym.find_actor_rigid_body_handle(self.envs[0], self.chair_handles[0], extremity_names[i])
+
+    def get_random_quat(self):
+        # https://github.com/KieranWynn/pyquaternion/blob/master/pyquaternion/quaternion.py
+        # https://github.com/KieranWynn/pyquaternion/blob/master/pyquaternion/quaternion.py#L261
+
+        uvw = torch_rand_float(0, 1.0, (self.num_envs, 3), device=self.device)
+        q_w = torch.sqrt(1.0 - uvw[:, 0]) * (torch.sin(2 * np.pi * uvw[:, 1]))
+        q_x = torch.sqrt(1.0 - uvw[:, 0]) * (torch.cos(2 * np.pi * uvw[:, 1]))
+        q_y = torch.sqrt(uvw[:, 0]) * (torch.sin(2 * np.pi * uvw[:, 2]))
+        q_z = torch.sqrt(uvw[:, 0]) * (torch.cos(2 * np.pi * uvw[:, 2]))
+        new_rot = torch.cat((q_x.unsqueeze(-1), q_y.unsqueeze(-1), q_z.unsqueeze(-1), q_w.unsqueeze(-1)), dim=-1)
+        return new_rot
 
     def compute_reward(self, actions):
         self.rew_buf[:], self.reset_buf[:], rewards= compute_chair_reward(
@@ -249,6 +281,7 @@ class Stand(VecTask):
             self.joints_at_limit_cost_scale,
             self.termination_height,
             self.termination_tilt,
+            self.termination_up_proj,
             self.death_cost,
             self.max_episode_length,
             self.cfg["env"]["numRotationHis"],
@@ -256,7 +289,7 @@ class Stand(VecTask):
         )
 
         self.frame += 1
-        rewards_name = ["simple_progress_reward", "desirable_progress_reward", "alive_reward", "up_reward", "heading_reward", "height_reward", "dof_at_limit_cost", "actions_cost"]
+        rewards_name = ["up_reward", "heading_reward", "height_reward", "dof_at_limit_cost", "actions_cost"]
         if self.frame % 100 == 0: 
             for i, name in enumerate(rewards_name):
                 self.eval_summaries.add_scalar("reward/" + name, rewards[i].mean().item(), self.frame)
@@ -281,13 +314,20 @@ class Stand(VecTask):
         if self.randomize:
             self.apply_randomizations(self.randomization_params)
 
-        positions = torch_rand_float(-0.2, 0.2, (len(env_ids), self.num_dof), device=self.device)
+        positions = torch_rand_float(-1.2, 1.2, (len(env_ids), self.num_dof), device=self.device)
+        # rotations = torch.tensor([0, 0, 0, 1.5, 1.5, 1.5], device=self.device).repeat(len(env_ids)).reshape(len(env_ids), self.num_dof)
         # positions_  = to_torch([[0.3, 0.3, 0.3, 3, 3, 3]], device=self.device).repeat(len(env_ids), 1)
         velocities = torch_rand_float(-0.1, 0.1, (len(env_ids), self.num_dof), device=self.device)
 
         self.dof_pos[env_ids] = tensor_clamp(self.initial_dof_pos[env_ids] + positions, self.dof_limits_lower, self.dof_limits_upper)
         # self.dof_pos[env_ids] = self.initial_dof_pos[env_ids] + positions
         self.dof_vel[env_ids] = velocities
+
+        start_pose = gymapi.Transform()
+        uvw = torch_rand_float(0, 1.0, (1, 3), device=self.device)
+        start_pose.r.w = torch.sqrt(1.0 - uvw[:, 0]) * (torch.sin(2 * np.pi * uvw[:, 1]))
+        start_pose.r.x = torch.sqrt(1.0 - uvw[:, 0]) * (torch.cos(2 * np.pi * uvw[:, 1]))
+        start_pose.r.y = torch.sqrt(uvw[:, 0]) * (torch.sin(2 * np.pi * uvw[:, 2]))
 
         env_ids_int32 = env_ids.to(dtype=torch.int32)
 
@@ -375,11 +415,12 @@ def compute_chair_reward(
     joints_at_limit_cost_scale,
     termination_height,
     termination_tilt,
+    termination_up_proj,
     death_cost,
     max_episode_length,
     numRotationHis,
     dummy_obs_buf):
-    # type: (Tensor, Tensor, Tensor, Tensor, float, float, float, float, float, float, float, float, float, float, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, float, float, float, float, float, float, float, int, Tensor) -> Tuple[Tensor, Tensor, List[Tensor]]
+    # type: (Tensor, Tensor, Tensor, Tensor, float, float, float, float, float, float, float, float, float, float, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, float, float, float, float, float, float, float, float, int, Tensor) -> Tuple[Tensor, Tensor, List[Tensor]]
 
     # print(obs_buf[0, :])
     # cost from tilt
@@ -395,6 +436,7 @@ def compute_chair_reward(
     # up_reward = torch.zeros_like(heading_reward)
     # up_reward = torch.where(dummy_obs_buf[:, 3] > 0.93, up_reward + up_weight, up_reward + up_weight * dummy_obs_buf[:, 3] / 0.93)
     up_reward = up_weight * torch.min(torch.ones_like(heading_reward), dummy_obs_buf[:, 3] / 0.93)
+    # print(dummy_obs_buf[0, 3])
 
     # reward from direction headed and aligning up axis of chair and environment
     # up_heading_weight_tensor = torch.ones_like(dummy_obs_buf[:, 4]) * up_heading_weight
@@ -421,61 +463,62 @@ def compute_chair_reward(
     dof_at_limit_cost = torch.sum((torch.abs(dummy_obs_buf[:, 5:11]) > 0.98) * scaled_cost, dim=-1)
 
     # reward for duration of being alive
-    alive_reward = torch.ones_like(potentials) * alive_weight
+    # alive_reward = torch.ones_like(potentials) * alive_weight
 
     # progress_reward = (potentials - prev_potentials) * dummy_obs_buf[:, 3] * progress_weight
     # simple_progress_reward = torch.zeros_like(heading_reward)
-    simple_progress_reward = (potentials - prev_potentials) * simple_progress_weight
+    # simple_progress_reward = (potentials - prev_potentials) * simple_progress_weight
     # desirable_progress_reward = torch.zeros_like(heading_reward)
     # desirable_progress_reward = torch.where((dummy_obs_buf[:, 3] > 0.93) & (torso_pos[:, 2] > 0.055), desirable_progress_weight + (potentials - prev_potentials) * desirable_progress_weight, desirable_progress_reward)
-    desirable_progress_reward = torch.min(torch.ones_like(heading_reward), torch.exp(10 * (dummy_obs_buf[:, 3] / 0.93 - 1))) * \
-                                torch.min(torch.ones_like(heading_reward), torch.exp(10 * (torso_pos[:, 2] / 0.08 - 1))) * \
-                                desirable_progress_weight * (potentials - prev_potentials)
+    # desirable_progress_reward = torch.min(torch.ones_like(heading_reward), torch.exp(10 * (dummy_obs_buf[:, 3] / 0.93 - 1))) * \
+    #                             torch.min(torch.ones_like(heading_reward), torch.exp(10 * (torso_pos[:, 2] / 0.08 - 1))) * \
+    #                             desirable_progress_weight * (potentials - prev_potentials)
     # print(torso_pos[0, 2])
     # print(dummy_obs_buf[0, 3])
 
     # omega_reward = torch.norm(omega[:, 0:3], dim=1) * torch.norm(obs_buf[:, 0:4] - zero_rot, dim=1) ** 2 * omega_weight
 
     # total_reward = progress_reward + move_forward_reward + height_reward + alive_reward - tilt_cost - actions_cost + omega_reward
-    total_reward = simple_progress_reward + desirable_progress_reward + alive_reward + up_reward + heading_reward + height_reward - dof_at_limit_cost - actions_cost
-    rewards = [simple_progress_reward, desirable_progress_reward, alive_reward, up_reward, heading_reward, height_reward, dof_at_limit_cost, actions_cost]
+    total_reward = up_reward + heading_reward + height_reward - dof_at_limit_cost - actions_cost
+    rewards = [up_reward, heading_reward, height_reward, dof_at_limit_cost, actions_cost]
     # print(f"{tilt_cost[0].item()} , {height_reward[0].item()}, {total_reward[0].item()}")
 
     # edge_pos
-    x_ofst = 0.095
-    y_ofst = 0.0785
-    lf = torch.zeros_like(torso_pos)
-    lf[:, 0] += x_ofst
-    lf[:, 1] += y_ofst
-    lf_pos = torso_pos + lf
-    lb = torch.zeros_like(torso_pos)
-    lb[:, 0] -= x_ofst
-    lb[:, 1] += y_ofst
-    lb_pos = torso_pos + lb
-    rb = torch.zeros_like(torso_pos)
-    rb[:, 0] -= x_ofst
-    rb[:, 1] -= y_ofst
-    rb_pos = torso_pos + rb
-    rf = torch.zeros_like(torso_pos)
-    rf[:, 0] += x_ofst
-    rf[:, 1] -= y_ofst
-    rf_pos = torso_pos + rf
-    quat = torch.zeros_like(torso_rot)
-    quat[:, 0] = torso_rot[:, 3]
-    quat[:, 1] = torso_rot[:, 0]
-    quat[:, 2] = torso_rot[:, 1]
-    quat[:, 3] = torso_rot[:, 2]
-    edge_pos = torch.matmul(quaternion_to_matrix(quat), torch.stack((lf_pos, lb_pos, rb_pos, rf_pos), dim=2))
+    # x_ofst = 0.095
+    # y_ofst = 0.0785
+    # lf = torch.zeros_like(torso_pos)
+    # lf[:, 0] += x_ofst
+    # lf[:, 1] += y_ofst
+    # lf_pos = torso_pos + lf
+    # lb = torch.zeros_like(torso_pos)
+    # lb[:, 0] -= x_ofst
+    # lb[:, 1] += y_ofst
+    # lb_pos = torso_pos + lb
+    # rb = torch.zeros_like(torso_pos)
+    # rb[:, 0] -= x_ofst
+    # rb[:, 1] -= y_ofst
+    # rb_pos = torso_pos + rb
+    # rf = torch.zeros_like(torso_pos)
+    # rf[:, 0] += x_ofst
+    # rf[:, 1] -= y_ofst
+    # rf_pos = torso_pos + rf
+    # quat = torch.zeros_like(torso_rot)
+    # quat[:, 0] = torso_rot[:, 3]
+    # quat[:, 1] = torso_rot[:, 0]
+    # quat[:, 2] = torso_rot[:, 1]
+    # quat[:, 3] = torso_rot[:, 2]
+    # edge_pos = torch.matmul(quaternion_to_matrix(quat), torch.stack((lf_pos, lb_pos, rb_pos, rf_pos), dim=2))
 
     # adjust reward for fallen agents
-    total_reward = torch.where(torch.min(edge_pos[:, 2, :], dim=1).values <= 0.01, torch.ones_like(total_reward) * death_cost, total_reward)
-    total_reward = torch.where(torch.norm(obs_buf[:, 0:4] - zero_rot, dim=1) > termination_tilt, torch.ones_like(total_reward) * death_cost, total_reward)
-    total_reward = torch.where(torso_pos[:, 2] < termination_height, torch.ones_like(total_reward) * death_cost, total_reward)
+    # total_reward = torch.where(torch.min(edge_pos[:, 2, :], dim=1).values <= 0.01, torch.ones_like(total_reward) * death_cost, total_reward)
+    # total_reward = torch.where(torch.norm(obs_buf[:, 0:4] - zero_rot, dim=1) > termination_tilt, torch.ones_like(total_reward) * death_cost, total_reward)
+    # total_reward = torch.where(torso_pos[:, 2] < termination_height, torch.ones_like(total_reward) * death_cost, total_reward)
 
     # reset agents
-    reset = torch.where(torch.min(edge_pos[:, 2, :], dim=1).values <= 0.01, torch.ones_like(reset_buf), reset_buf)
-    reset = torch.where(torch.norm(obs_buf[:, 0:4] - zero_rot, dim=1) > termination_tilt, torch.ones_like(reset_buf), reset) 
-    reset = torch.where(torso_pos[:, 2] < termination_height, torch.ones_like(reset_buf), reset)
+    # reset = torch.where(torch.min(edge_pos[:, 2, :], dim=1).values <= 0.01, torch.ones_like(reset_buf), reset_buf)
+    # reset = torch.where(torch.norm(obs_buf[:, 0:4] - zero_rot, dim=1) > termination_tilt, torch.ones_like(reset_buf), reset) 
+    # reset = torch.where(torso_pos[:, 2] < termination_height, torch.ones_like(reset_buf), reset)
+    reset = torch.where(dummy_obs_buf[:, 3] < termination_up_proj, torch.ones_like(reset_buf), reset_buf)
     reset = torch.where(progress_buf >= max_episode_length - 1, torch.ones_like(reset_buf), reset)
     # print(torso_pos[:, 2][0])
     # reset = torch.where(progress_buf >= max_episode_length - 1, torch.ones_like(reset_buf), reset_buf)
