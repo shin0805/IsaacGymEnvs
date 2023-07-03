@@ -442,7 +442,7 @@ def compute_chair_reward(
     # reward from move height
     # height_reward = torso_pos[:, 2] * dummy_obs_buf[:, 3] * height_weight
     height_reward = torso_pos[:, 2] * height_weight
-    height_reward = up_weight * torch.min(torch.ones_like(heading_reward), torso_pos[:, 2] / 0.08)
+    height_reward = height_weight * torch.min(torch.ones_like(heading_reward), torso_pos[:, 2] / 0.08)
     # height_reward = torso_pos[:, 2] / (1000 * torch.norm(obs_buf[:, 0:4] - zero_rot, dim=1) + 1) * 1000 * height_weight
 
     # energy penalty for movement

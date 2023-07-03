@@ -35,7 +35,7 @@ env:
   simpleProgressWeight: 30
   desirableProgressWeight: 0
   upWeight: 5 # 50
-  heightWeight: 20 # 0.5 -> 5
+  heightWeight: 5 # 0.5 -> 5, 20
 
   # upWeight: 1 # 0.5
 
