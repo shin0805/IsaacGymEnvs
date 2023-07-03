@@ -60,7 +60,7 @@ class Stand(VecTask):
         super().__init__(config=self.cfg, rl_device=rl_device, sim_device=sim_device, graphics_device_id=graphics_device_id, headless=headless, virtual_screen_capture=virtual_screen_capture, force_render=force_render)
 
         if self.viewer != None:
-            cam_offset = 0 # 20
+            cam_offset = 20 # 20
             cam_pos = gymapi.Vec3(2 + cam_offset, 0.5 + cam_offset, 1.5)
             cam_target = gymapi.Vec3(0.0 + cam_offset, 0.0 + cam_offset, 0.0)
             self.gym.viewer_camera_look_at(self.viewer, None, cam_pos, cam_target)
@@ -205,18 +205,24 @@ class Stand(VecTask):
                 self.sim, lower, upper, num_per_row
             )
 
+            start_pose.r.z = 0
+            start_pose.r.w = np.sqrt(2) / 2
+            r_x = [np.sqrt(2) / 2, -np.sqrt(2) / 2, 0]
+            r_y = [0, 0, -np.sqrt(2) / 2]
             # random rotation
-            flag = True
-            while flag: 
-                uvw = torch_rand_float(0, 1.0, (1, 3), device=self.device)
-                start_pose.r.w = torch.sqrt(1.0 - uvw[:, 0]) * (torch.sin(2 * np.pi * uvw[:, 1]))
-                start_pose.r.x = torch.sqrt(1.0 - uvw[:, 0]) * (torch.cos(2 * np.pi * uvw[:, 1]))
-                start_pose.r.y = torch.sqrt(uvw[:, 0]) * (torch.sin(2 * np.pi * uvw[:, 2]))
-                start_pose.r.z = torch.sqrt(uvw[:, 0]) * (torch.cos(2 * np.pi * uvw[:, 2]))
-                rand_quat = torch.tensor([start_pose.r.x, start_pose.r.y, start_pose.r.z, start_pose.r.w], device=self.device).view(1, 4)
-                torso_quat = quat_mul(rand_quat, torch.tensor([0, 0, 0, 1], device=self.device).view(1, 4)).view(1, 4)
-                up_vec_proj = get_basis_vector(torso_quat, to_torch(get_axis_params(1., self.up_axis_idx), device=self.device).view(1, 3))[0, 2]
-                flag = up_vec_proj < self.termination_up_proj # TODO Not reset at initial rotation
+            start_pose.r.x = r_x[i % 3]
+            start_pose.r.y = r_y[i % 3]
+            # flag = True
+            # while flag: 
+            #     uvw = torch_rand_float(0, 1.0, (1, 3), device=self.device)
+            #     start_pose.r.w = torch.sqrt(1.0 - uvw[:, 0]) * (torch.sin(2 * np.pi * uvw[:, 1]))
+            #     start_pose.r.x = torch.sqrt(1.0 - uvw[:, 0]) * (torch.cos(2 * np.pi * uvw[:, 1]))
+            #     start_pose.r.y = torch.sqrt(uvw[:, 0]) * (torch.sin(2 * np.pi * uvw[:, 2]))
+            #     start_pose.r.z = torch.sqrt(uvw[:, 0]) * (torch.cos(2 * np.pi * uvw[:, 2]))
+            #     rand_quat = torch.tensor([start_pose.r.x, start_pose.r.y, start_pose.r.z, start_pose.r.w], device=self.device).view(1, 4)
+            #     torso_quat = quat_mul(rand_quat, torch.tensor([0, 0, 0, 1], device=self.device).view(1, 4)).view(1, 4)
+            #     up_vec_proj = get_basis_vector(torso_quat, to_torch(get_axis_params(1., self.up_axis_idx), device=self.device).view(1, 3))[0, 2]
+            #     flag = up_vec_proj < self.termination_up_proj # TODO Not reset at initial rotation
 
             chair_handle = self.gym.create_actor(env_ptr, chair_asset, start_pose, "chair", i, 1, 0)
 
@@ -435,7 +441,8 @@ def compute_chair_reward(
     # aligning up axis of chair and environment
     # up_reward = torch.zeros_like(heading_reward)
     # up_reward = torch.where(dummy_obs_buf[:, 3] > 0.93, up_reward + up_weight, up_reward + up_weight * dummy_obs_buf[:, 3] / 0.93)
-    up_reward = up_weight * torch.min(torch.ones_like(heading_reward), dummy_obs_buf[:, 3] / 0.93)
+    up_reward = up_weight * torch.min(torch.ones_like(heading_reward), torch.exp(dummy_obs_buf[:, 3] / 1.0 - 1))
+    # print(torch.exp(5 * (dummy_obs_buf[0, 3] / 1.0 - 1)))
     # print(dummy_obs_buf[0, 3])
 
     # reward from direction headed and aligning up axis of chair and environment
@@ -451,7 +458,7 @@ def compute_chair_reward(
     # reward from move height
     # height_reward = torso_pos[:, 2] * dummy_obs_buf[:, 3] * height_weight
     height_reward = torso_pos[:, 2] * height_weight
-    height_reward = up_weight * torch.min(torch.ones_like(heading_reward), torso_pos[:, 2] / 0.08)
+    height_reward = height_weight * torch.min(torch.ones_like(heading_reward), torso_pos[:, 2] / 0.08)
     # height_reward = torso_pos[:, 2] / (1000 * torch.norm(obs_buf[:, 0:4] - zero_rot, dim=1) + 1) * 1000 * height_weight
 
     # energy penalty for movement
