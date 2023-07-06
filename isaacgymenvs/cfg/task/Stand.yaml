@@ -7,7 +7,7 @@ physics_engine: ${..physics_engine}
 env:
   numEnvs: ${resolve_default:4096,${...num_envs}}
   envSpacing: 1
-  episodeLength: 100
+  episodeLength: 350
   enableDebugVis: False
 
   # clipActions: 1.0
@@ -32,6 +32,7 @@ env:
 
   simpleProgressWeight: 30
   desirableProgressWeight: 0
+  desirableHeightWeight: 800
   upWeight: 100 # 50
   heightWeight: 6 # 20
 
@@ -47,6 +48,7 @@ env:
   dofVelocityScale: 0.2
   contactForceScale: 0.1
   jointsAtLimitCost: 0.1
+  sittingCost: 250
   # deathCost: -2
 
   plane:

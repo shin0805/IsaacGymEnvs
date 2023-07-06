@@ -209,8 +209,8 @@ def launch_rlg_hydra(cfg: DictConfig):
 
     onnx_name = cfg.checkpoint.replace("pth", "onnx")
     torch.onnx.export(traced, *adapter.flattened_inputs, onnx_name, verbose=False, input_names=['obs'], output_names=['mu','log_std', 'value'])
-    print(f"cp {onnx_name} /home/leus/mechProject/models/walk/{onnx_name.split('/')[6]}.onnx")
-    subprocess.call(f"cp {onnx_name} /home/leus/mechProject/models/walk/{onnx_name.split('/')[6]}.onnx", shell=True)
+    print(f"cp {onnx_name} /home/leus/mechProject/models/stand/{onnx_name.split('/')[6]}.onnx")
+    subprocess.call(f"cp {onnx_name} /home/leus/mechProject/models/stand/{onnx_name.split('/')[6]}.onnx", shell=True)
 
     onnx_model = onnx.load(onnx_name)
 

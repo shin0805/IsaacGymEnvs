@@ -36,11 +36,13 @@ class Stand(VecTask):
         self.alive_weight = self.cfg["env"]["aliveWeight"]
         self.simple_progress_weight = self.cfg["env"]["simpleProgressWeight"]
         self.desirable_progress_weight = self.cfg["env"]["desirableProgressWeight"]
+        self.desirable_height_weight = self.cfg["env"]["desirableHeightWeight"]
         self.omega_weight = self.cfg["env"]["omegaWeight"]
         self.actions_cost_scale = self.cfg["env"]["actionsCost"]
         self.energy_cost_scale = self.cfg["env"]["energyCost"]
         self.joints_at_limit_cost_scale = self.cfg["env"]["jointsAtLimitCost"]
         self.death_cost = self.cfg["env"]["deathCost"]
+        self.sitting_cost = self.cfg["env"]["sittingCost"]
         self.termination_height = self.cfg["env"]["terminationHeight"]
         self.termination_tilt = self.cfg["env"]["terminationTilt"]
         self.termination_up_proj = self.cfg["env"]["terminationUpProj"]
@@ -60,7 +62,7 @@ class Stand(VecTask):
         super().__init__(config=self.cfg, rl_device=rl_device, sim_device=sim_device, graphics_device_id=graphics_device_id, headless=headless, virtual_screen_capture=virtual_screen_capture, force_render=force_render)
 
         if self.viewer != None:
-            cam_offset = 20 # 20
+            cam_offset = 0 # 20
             cam_pos = gymapi.Vec3(2 + cam_offset, 0.5 + cam_offset, 1.5)
             cam_target = gymapi.Vec3(0.0 + cam_offset, 0.0 + cam_offset, 0.0)
             self.gym.viewer_camera_look_at(self.viewer, None, cam_pos, cam_target)
@@ -115,6 +117,8 @@ class Stand(VecTask):
         self.action_history = torch.ones([self.num_envs, self.cfg["env"]["numActionHis"], self.cfg["env"]["numActions"]], device=self.device)
         self.rotation_history = torch.zeros([self.num_envs, self.cfg["env"]["numRotationHis"], 4], device=self.device)
         self.rotation_history[:, :, 3] = 1.0
+
+        self.standing_dof_pos = to_torch([-0.1745, 0, -0.1745, 0, 0.1745, 0], device=self.device).repeat((self.num_envs, 1))
 
         self.eval_summary_dir = './rewards/rewards_summaries' + datetime.datetime.now().strftime('_%d-%H-%M-%S')
         # remove the old directory if it exists
@@ -275,6 +279,7 @@ class Stand(VecTask):
             self.alive_weight,
             self.simple_progress_weight,
             self.desirable_progress_weight,
+            self.desirable_height_weight,
             self.omega_weight,
             self.potentials,
             self.prev_potentials,
@@ -289,13 +294,15 @@ class Stand(VecTask):
             self.termination_tilt,
             self.termination_up_proj,
             self.death_cost,
+            self.sitting_cost,
             self.max_episode_length,
             self.cfg["env"]["numRotationHis"],
-            self.dummy_obs_buf
+            self.dummy_obs_buf,
+            self.standing_dof_pos
         )
 
         self.frame += 1
-        rewards_name = ["up_reward", "heading_reward", "height_reward", "dof_at_limit_cost", "actions_cost"]
+        rewards_name = ["up_reward", "heading_reward", "height_reward", "dof_at_limit_cost", "actions_cost", "desirable_height_reward", "sitting"]
         if self.frame % 100 == 0: 
             for i, name in enumerate(rewards_name):
                 self.eval_summaries.add_scalar("reward/" + name, rewards[i].mean().item(), self.frame)
@@ -409,6 +416,7 @@ def compute_chair_reward(
     alive_weight,
     simple_progress_weight,
     desirable_progress_weight,
+    desirable_height_weight,
     omega_weight,
     potentials,
     prev_potentials,
@@ -423,10 +431,12 @@ def compute_chair_reward(
     termination_tilt,
     termination_up_proj,
     death_cost,
+    sitting_cost,
     max_episode_length,
     numRotationHis,
-    dummy_obs_buf):
-    # type: (Tensor, Tensor, Tensor, Tensor, float, float, float, float, float, float, float, float, float, float, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, float, float, float, float, float, float, float, float, int, Tensor) -> Tuple[Tensor, Tensor, List[Tensor]]
+    dummy_obs_buf,
+    standing_dof_pos):
+    # type: (Tensor, Tensor, Tensor, Tensor, float, float, float, float, float, float, float, float, float, float, float, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, float, float, float, float, float, float, float, float, float, int, Tensor, Tensor) -> Tuple[Tensor, Tensor, List[Tensor]]
 
     # print(obs_buf[0, :])
     # cost from tilt
@@ -483,11 +493,33 @@ def compute_chair_reward(
     # print(torso_pos[0, 2])
     # print(dummy_obs_buf[0, 3])
 
+    desirable_height_reward = torch.zeros_like(heading_reward)
+    desirable_height_reward = torch.min(torch.ones_like(heading_reward), torch.exp(2 * (dummy_obs_buf[:, 3] / 0.8 - 1))) * torso_pos[:, 2] * desirable_height_weight
+
+    # diff to standing position
+    # standing_dof_pos = torch.tensor([-0.1745, 0, -0.1745, 0, -0.1745, 0], device=self.device).repeat((self.num_envs, 1))
+    # sitting = torch.sum((actions - standing_dof_pos) ** 2) * sitting_cost * \
+    #         torch.min(torch.ones_like(heading_reward), torch.exp(10 * (dummy_obs_buf[:, 3] / 0.93 - 1)))
+    sitting = torch.zeros_like(heading_reward)
+    # sitting = torch.where(dummy_obs_buf[:, 3] > 0.8, sitting_cost / (torch.sum(torch.square(actions - standing_dof_pos), dim=1) + 1), sitting)
+    # sitting = torch.where(dummy_obs_buf[:, 3] > 0.7, sitting_cost / torch.exp(torch.sum(torch.square(actions - standing_dof_pos), dim=1)), sitting)
+    # sitting = torch.where(dummy_obs_buf[:, 3] > 0.7, sitting_cost / torch.exp(5 * torch.max(torch.square(actions - standing_dof_pos), dim=1)[0]), sitting)
+    sit_dist = 2.0 * torch.asin(torch.clamp(torch.norm(actions - standing_dof_pos, p=2, dim=-1), max=1.0))
+    sitting = torch.where(dummy_obs_buf[:, 3] > 0.7, sitting_cost / (torch.abs(sit_dist) + 0.1), sitting)
+
+    # print("======")
+    # print(actions[0, :])
+    # print(standing_dof_pos[0, :])
+    # print(torch.max(torch.square(actions - standing_dof_pos), dim=1)[0][0])
+    # print(actions[0, :])
+
     # omega_reward = torch.norm(omega[:, 0:3], dim=1) * torch.norm(obs_buf[:, 0:4] - zero_rot, dim=1) ** 2 * omega_weight
 
     # total_reward = progress_reward + move_forward_reward + height_reward + alive_reward - tilt_cost - actions_cost + omega_reward
-    total_reward = up_reward + heading_reward + height_reward - dof_at_limit_cost - actions_cost
-    rewards = [up_reward, heading_reward, height_reward, dof_at_limit_cost, actions_cost]
+    total_reward = up_reward + heading_reward + height_reward - dof_at_limit_cost - actions_cost + desirable_height_reward + sitting
+    # total_reward = up_reward + sitting
+    # total_reward = up_reward + desirable_height_reward
+    rewards = [up_reward, heading_reward, height_reward, dof_at_limit_cost, actions_cost, desirable_height_reward, sitting]
     # print(f"{tilt_cost[0].item()} , {height_reward[0].item()}, {total_reward[0].item()}")
 
     # edge_pos
