@@ -105,12 +105,12 @@
   </worldbody>
 
   <actuator>
-    <position name="joint1" joint="joint1" kp="50" ctrllimited="true" ctrlrange="-0.872665 0.872665" forcelimited="true" forcerange="-0.3 0.3"/> <!--0.1764-->
-  	<position name="joint2" joint="joint2" kp="50" ctrllimited="true" ctrlrange="-0.872665 0.872665" forcelimited="true" forcerange="-0.3 0.3"/>
-  	<position name="joint3" joint="joint3" kp="50" ctrllimited="true" ctrlrange="-0.872665 0.872665" forcelimited="true" forcerange="-0.3 0.3"/>
-  	<position name="joint4" joint="joint4" kp="50" ctrllimited="true" ctrlrange="-0.872665 0.872665" forcelimited="true" forcerange="-0.3 0.3"/>
-  	<position name="joint5" joint="joint5" kp="50" ctrllimited="true" ctrlrange="-0.872665 0.872665" forcelimited="true" forcerange="-0.3 0.3"/>
-  	<position name="joint6" joint="joint6" kp="50" ctrllimited="true" ctrlrange="-0.872665 0.872665" forcelimited="true" forcerange="-0.3 0.3"/>
+    <position name="joint1" joint="joint1" kp="40" ctrllimited="true" ctrlrange="-0.872665 0.872665" forcelimited="true" forcerange="-0.3 0.3"/> <!--0.1764-->
+  	<position name="joint2" joint="joint2" kp="40" ctrllimited="true" ctrlrange="-0.872665 0.872665" forcelimited="true" forcerange="-0.3 0.3"/>
+  	<position name="joint3" joint="joint3" kp="40" ctrllimited="true" ctrlrange="-0.872665 0.872665" forcelimited="true" forcerange="-0.3 0.3"/>
+  	<position name="joint4" joint="joint4" kp="40" ctrllimited="true" ctrlrange="-0.872665 0.872665" forcelimited="true" forcerange="-0.3 0.3"/>
+  	<position name="joint5" joint="joint5" kp="40" ctrllimited="true" ctrlrange="-0.872665 0.872665" forcelimited="true" forcerange="-0.3 0.3"/>
+  	<position name="joint6" joint="joint6" kp="40" ctrllimited="true" ctrlrange="-0.872665 0.872665" forcelimited="true" forcerange="-0.3 0.3"/>
 		<!--
 		<motor name="joint1" joint="joint1" ctrllimited="true" ctrlrange="-1.57 1.57" forcelimited="true" forcerange="-.3 .3" gear="1"/>
   	<motor name="joint2" joint="joint2" ctrllimited="true" ctrlrange="-1.57 1.57" forcelimited="true" forcerange="-.3 .3" gear="1"/>

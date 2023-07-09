@@ -32,8 +32,8 @@ env:
 
   simpleProgressWeight: 30
   desirableProgressWeight: 0
-  desirableHeightWeight: 800
-  upWeight: 100 # 50
+  desirableHeightWeight: 100 # 800
+  upWeight: 150 # 50
   heightWeight: 6 # 20
 
   # upWeight: 1 # 0.5
@@ -42,13 +42,15 @@ env:
   tiltWeight: 0
   terminationTilt: ${if:${...test}, 2, 0.7} # 0.4 -> 0.28 -> 0.3
   terminationUpProj: ${if:${...test}, -2, -0.7}
+  terminationExpand: ${if:${...test}, 10, 1} 
   # terminationHeight: 0.06
   # actionsCost: -0.1
   energyCost: 0.05
   dofVelocityScale: 0.2
   contactForceScale: 0.1
-  jointsAtLimitCost: 0.1
-  sittingCost: 250
+  jointsAtLimitCost: 5
+  sittingCost: 100 # 250
+  expandWeight: 15
   # deathCost: -2
 
   plane:
