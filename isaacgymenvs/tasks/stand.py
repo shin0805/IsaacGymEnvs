@@ -504,6 +504,8 @@ def compute_chair_reward(
 
     desirable_height_reward = torch.zeros_like(heading_reward)
     desirable_height_reward = torch.min(torch.ones_like(heading_reward), torch.exp(2 * (dummy_obs_buf[:, 3] / 0.8 - 1))) * torso_pos[:, 2] * desirable_height_weight
+    # desirable_height_reward = torch.where(0.7 < dummy_obs_buf[:, 3], \
+    #         torch.min(torch.ones_like(heading_reward), torch.exp(2 * (dummy_obs_buf[:, 3] / 0.8 - 1))) * torso_pos[:, 2] * desirable_height_weight, desirable_height_reward)
 
     # diff to standing position
     # standing_dof_pos = torch.tensor([-0.1745, 0, -0.1745, 0, -0.1745, 0], device=self.device).repeat((self.num_envs, 1))
@@ -520,7 +522,7 @@ def compute_chair_reward(
     expand = torch.zeros_like(heading_reward)
     # expand_dist = 2.0 * torch.asin(torch.clamp(torch.max(actions[:, [0, 3, 5]] - expand_pos, dim=1)[0], max=1.0))
     expand_dist = 2.0 * torch.asin(torch.clamp(torch.max(torch.abs(actions[:, [0, 3, 5]] - expand_pos), dim=1)[0], max=1.0))
-    expand = torch.where((0.4 < dummy_obs_buf[:, 3]) & (dummy_obs_buf[:, 3] < 0.7), expand_weight / (torch.abs(expand_dist) + 0.1), expand)
+    expand = torch.where((0.5 < dummy_obs_buf[:, 3]) & (dummy_obs_buf[:, 3] < 0.8), expand_weight / (torch.abs(expand_dist) + 0.1), expand)
 
     # print("======")
     # print(actions[0, :])
@@ -572,7 +574,7 @@ def compute_chair_reward(
     # reset = torch.where(torch.min(edge_pos[:, 2, :], dim=1).values <= 0.01, torch.ones_like(reset_buf), reset_buf)
     # reset = torch.where(torch.norm(obs_buf[:, 0:4] - zero_rot, dim=1) > termination_tilt, torch.ones_like(reset_buf), reset) 
     # reset = torch.where(torso_pos[:, 2] < termination_height, torch.ones_like(reset_buf), reset)
-    reset = torch.where(((0.4 < dummy_obs_buf[:, 3]) & (dummy_obs_buf[:, 3] < 0.7)) & (torch.max(torch.abs(actions[:, [0, 3, 5]] - expand_pos), dim=1)[0] > 1), torch.ones_like(reset_buf), reset_buf)
+    reset = torch.where(((0.5 < dummy_obs_buf[:, 3]) & (dummy_obs_buf[:, 3] < 0.8)) & (torch.max(torch.abs(actions[:, [0, 3, 5]] - expand_pos), dim=1)[0] > 1), torch.ones_like(reset_buf), reset_buf)
     # print(torch.max(torch.abs(actions[:, [0, 3, 5]] - expand_pos), dim=1)[0][0])
     reset = torch.where(dummy_obs_buf[:, 3] < termination_up_proj, torch.ones_like(reset_buf), reset)
     reset = torch.where(progress_buf >= max_episode_length - 1, torch.ones_like(reset_buf), reset)
