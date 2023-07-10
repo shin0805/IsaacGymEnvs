@@ -33,7 +33,7 @@ env:
   simpleProgressWeight: 30
   desirableProgressWeight: 0
   desirableHeightWeight: 0 # 100 # 800
-  upWeight: 800 # 50 # 250
+  upWeight: 250 # 50 # 250
   heightWeight: 0 # 6 # 20
 
   # upWeight: 1 # 0.5
@@ -50,7 +50,7 @@ env:
   contactForceScale: 0.1
   jointsAtLimitCost: 5
   sittingCost: 100 # 250
-  expandWeight: 15
+  expandWeight: 50
   # deathCost: -2
 
   plane:
