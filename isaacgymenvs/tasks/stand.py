@@ -64,7 +64,7 @@ class Stand(VecTask):
         super().__init__(config=self.cfg, rl_device=rl_device, sim_device=sim_device, graphics_device_id=graphics_device_id, headless=headless, virtual_screen_capture=virtual_screen_capture, force_render=force_render)
 
         if self.viewer != None:
-            cam_offset = 0 # 20
+            cam_offset = 20 # 20
             cam_pos = gymapi.Vec3(2 + cam_offset, 0.5 + cam_offset, 1.5)
             cam_target = gymapi.Vec3(0.0 + cam_offset, 0.0 + cam_offset, 0.0)
             self.gym.viewer_camera_look_at(self.viewer, None, cam_pos, cam_target)
