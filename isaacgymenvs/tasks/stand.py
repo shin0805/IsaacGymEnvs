@@ -64,11 +64,14 @@ class Stand(VecTask):
         super().__init__(config=self.cfg, rl_device=rl_device, sim_device=sim_device, graphics_device_id=graphics_device_id, headless=headless, virtual_screen_capture=virtual_screen_capture, force_render=force_render)
 
         if self.viewer != None:
-            cam_offset = 20 # 20
-            cam_pos = gymapi.Vec3(2 + cam_offset, 0.5 + cam_offset, 1.5)
-            cam_target = gymapi.Vec3(0.0 + cam_offset, 0.0 + cam_offset, 0.0)
+            cam_offset = 14 # 20
+            # cam_pos = gymapi.Vec3(2 + cam_offset, 0.5 + cam_offset, 1.5)
+            # cam_target = gymapi.Vec3(0.0 + cam_offset, 0.0 + cam_offset, 0.0)
+            cam_pos = gymapi.Vec3(0.4 + cam_offset, 0.4 + cam_offset, 0.5)
+            cam_target = gymapi.Vec3(-0.3 + cam_offset, -0.3 + cam_offset, 0.0)
             self.gym.viewer_camera_look_at(self.viewer, None, cam_pos, cam_target)
             
+        self.metadata = {"render.modes": ["human", "rgb_array"], "video.frames_per_second": 5}
 
         # get gym GPU state tensors
         actor_root_state = self.gym.acquire_actor_root_state_tensor(self.sim)
@@ -518,7 +521,7 @@ def compute_chair_reward(
     # sitting = torch.where(dummy_obs_buf[:, 3] > 0.7, sitting_cost / torch.exp(5 * torch.max(torch.square(actions - standing_dof_pos), dim=1)[0]), sitting)
     sit_dist = 2.0 * torch.asin(torch.clamp(torch.norm(actions - standing_dof_pos, p=4, dim=-1), max=1.0))
     # sit_dist = 2.0 * torch.asin(torch.clamp(torch.max(actions - standing_dof_pos, dim=1)[0], max=1.0))
-    sitting = torch.where(dummy_obs_buf[:, 3] > 0.85, sitting_cost / (torch.abs(sit_dist) + 0.1), sitting)
+    sitting = torch.where(dummy_obs_buf[:, 3] > 0.9, sitting_cost / (torch.abs(sit_dist) + 0.1), sitting)
 
     expand = torch.zeros_like(heading_reward)
     # expand_dist = 2.0 * torch.asin(torch.clamp(torch.max(actions[:, [0, 3, 5]] - expand_pos, dim=1)[0], max=1.0))
